@@ -6,7 +6,16 @@ import {
   Ban, Trash2, Building2, User,
 } from 'lucide-react';
 import { getCampaignById, saveCampaign } from '../data/store';
-import type { Campaign, Contact } from '../types';
+import type { Campaign, Contact, LeadStatus } from '../types';
+
+const LEAD_STATUS_OPTIONS: { value: LeadStatus; label: string; color: string }[] = [
+  { value: 'hot',           label: 'HOT',           color: '#ef4444' },
+  { value: 'warm',          label: 'WARM',          color: '#f59e0b' },
+  { value: 'cold',          label: 'COLD',          color: '#60a5fa' },
+  { value: 'callback',      label: 'CALLBACK',      color: '#a78bfa' },
+  { value: 'not_interested', label: 'NOT INT.',     color: '#475569' },
+  { value: 'voicemail',     label: 'VOICEMAIL',     color: '#2dd4bf' },
+];
 
 type CallStatus = Contact['status'];
 
@@ -107,6 +116,14 @@ export default function CampaignDetail() {
     persist({ ...campaign, contacts });
   }
 
+  function setLeadStatus(contactId: string, leadStatus: LeadStatus) {
+    if (!campaign) return;
+    const contacts = campaign.contacts.map(c =>
+      c.id === contactId ? { ...c, leadStatus } : c
+    );
+    persist({ ...campaign, contacts });
+  }
+
   function markDNC(contactId: string) {
     if (!campaign) return;
     const contacts = campaign.contacts.map(c =>
@@ -182,6 +199,8 @@ export default function CampaignDetail() {
               company: contact.company ?? '',
               notes: contact.notes ?? '',
               lead_source: contact.leadSource ?? '',
+              custom_field_1: contact.id,
+              custom_field_2: campaign.id,
             },
           }),
         });
@@ -381,7 +400,7 @@ export default function CampaignDetail() {
           <table style={{ width: '100%', borderCollapse: 'collapse' }}>
             <thead>
               <tr style={{ borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
-                {['Name', 'Phone', 'Company', 'Status', 'Called At', 'Actions'].map(h => (
+                {['Name', 'Phone', 'Company', 'Call Status', 'Lead', 'Called At', 'Actions'].map(h => (
                   <th key={h} style={{ padding: '11px 16px', textAlign: 'left', fontSize: 11, fontWeight: 600, color: '#475569', textTransform: 'uppercase', letterSpacing: '0.06em' }}>{h}</th>
                 ))}
               </tr>
@@ -401,6 +420,20 @@ export default function CampaignDetail() {
                       <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 11, fontWeight: 600, padding: '3px 8px', borderRadius: 5, background: `${cfg.color}18`, color: cfg.color }}>
                         {cfg.icon} {cfg.label}
                       </span>
+                    </td>
+                    <td style={{ padding: '11px 12px' }}>
+                      {contact.status === 'completed' || contact.leadStatus ? (
+                        <select
+                          value={contact.leadStatus ?? ''}
+                          onChange={e => setLeadStatus(contact.id, e.target.value as LeadStatus)}
+                          style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 6, padding: '4px 8px', fontSize: 11, fontWeight: 600, color: LEAD_STATUS_OPTIONS.find(o => o.value === contact.leadStatus)?.color ?? '#64748b', cursor: 'pointer', outline: 'none' }}
+                        >
+                          <option value="" style={{ background: '#0d0d14', color: '#64748b' }}>— Qualify —</option>
+                          {LEAD_STATUS_OPTIONS.map(o => (
+                            <option key={o.value} value={o.value} style={{ background: '#0d0d14', color: o.color }}>{o.label}</option>
+                          ))}
+                        </select>
+                      ) : <span style={{ color: '#334155', fontSize: 12 }}>—</span>}
                     </td>
                     <td style={{ padding: '11px 16px', fontSize: 12, color: '#475569' }}>
                       {contact.calledAt ? new Date(contact.calledAt).toLocaleTimeString() : '—'}

@@ -1,5 +1,5 @@
 import { NavLink } from 'react-router-dom';
-import { Zap, LayoutDashboard, Building2, User, MessageSquareWarning, Package, Target, ShieldCheck, Phone, Settings } from 'lucide-react';
+import { Zap, LayoutDashboard, Building2, User, MessageSquareWarning, Package, Target, ShieldCheck, Phone, Settings, Bot, TrendingUp } from 'lucide-react';
 
 const playbookItems = [
   { to: '/', icon: LayoutDashboard, label: 'Dashboard', exact: true },
@@ -13,6 +13,8 @@ const playbookItems = [
 
 const callingItems = [
   { to: '/campaigns', icon: Phone, label: 'Campaigns' },
+  { to: '/pipeline', icon: TrendingUp, label: 'Pipeline' },
+  { to: '/agent-setup', icon: Bot, label: 'Agent Setup' },
   { to: '/settings', icon: Settings, label: 'Settings' },
 ];
 

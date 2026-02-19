@@ -1,3 +1,5 @@
+export type LeadStatus = 'hot' | 'warm' | 'cold' | 'not_interested' | 'callback' | 'voicemail' | 'unqualified';
+
 export interface Contact {
   id: string;
   name: string;
@@ -9,6 +11,13 @@ export interface Contact {
   status: 'pending' | 'calling' | 'completed' | 'failed' | 'dnc';
   calledAt?: string;
   error?: string;
+  leadStatus?: LeadStatus;
+  recordingUrl?: string;
+  transcript?: string;
+  callDuration?: number;
+  callbackDate?: string;
+  campaignId?: string;
+  campaignName?: string;
 }
 
 export interface Campaign {
@@ -29,4 +38,18 @@ export interface AppSettings {
   b2cWebhookUrl: string;
   defaultTimezone: string;
   delayBetweenCalls: number;
+  callResultWebhookSecret?: string;
+}
+
+export interface CallResult {
+  contactId: string;
+  campaignId: string;
+  phone: string;
+  status: string;
+  duration?: number;
+  recordingUrl?: string;
+  transcript?: string;
+  leadStatus?: LeadStatus;
+  summary?: string;
+  receivedAt: string;
 }

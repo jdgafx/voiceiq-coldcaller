@@ -10,6 +10,8 @@ import Compliance from './pages/Compliance';
 import Campaigns from './pages/Campaigns';
 import CampaignDetail from './pages/CampaignDetail';
 import Settings from './pages/Settings';
+import AgentSetup from './pages/AgentSetup';
+import Pipeline from './pages/Pipeline';
 
 export default function App() {
   return (
@@ -28,6 +30,8 @@ export default function App() {
             <Route path="/campaigns" element={<Campaigns />} />
             <Route path="/campaigns/:id" element={<CampaignDetail />} />
             <Route path="/settings" element={<Settings />} />
+            <Route path="/agent-setup" element={<AgentSetup />} />
+            <Route path="/pipeline" element={<Pipeline />} />
           </Routes>
         </main>
       </div>
