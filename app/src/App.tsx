@@ -7,6 +7,9 @@ import Objections from './pages/Objections';
 import Products from './pages/Products';
 import Leads from './pages/Leads';
 import Compliance from './pages/Compliance';
+import Campaigns from './pages/Campaigns';
+import CampaignDetail from './pages/CampaignDetail';
+import Settings from './pages/Settings';
 
 export default function App() {
   return (
@@ -22,6 +25,9 @@ export default function App() {
             <Route path="/products" element={<Products />} />
             <Route path="/leads" element={<Leads />} />
             <Route path="/compliance" element={<Compliance />} />
+            <Route path="/campaigns" element={<Campaigns />} />
+            <Route path="/campaigns/:id" element={<CampaignDetail />} />
+            <Route path="/settings" element={<Settings />} />
           </Routes>
         </main>
       </div>

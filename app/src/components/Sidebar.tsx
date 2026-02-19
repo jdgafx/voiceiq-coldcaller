@@ -1,7 +1,7 @@
 import { NavLink } from 'react-router-dom';
-import { Zap, LayoutDashboard, Building2, User, MessageSquareWarning, Package, Target, ShieldCheck } from 'lucide-react';
+import { Zap, LayoutDashboard, Building2, User, MessageSquareWarning, Package, Target, ShieldCheck, Phone, Settings } from 'lucide-react';
 
-const navItems = [
+const playbookItems = [
   { to: '/', icon: LayoutDashboard, label: 'Dashboard', exact: true },
   { to: '/b2b', icon: Building2, label: 'B2B Script' },
   { to: '/b2c', icon: User, label: 'B2C Script' },
@@ -9,6 +9,11 @@ const navItems = [
   { to: '/products', icon: Package, label: 'Products' },
   { to: '/leads', icon: Target, label: 'Lead Outcomes' },
   { to: '/compliance', icon: ShieldCheck, label: 'Compliance' },
+];
+
+const callingItems = [
+  { to: '/campaigns', icon: Phone, label: 'Campaigns' },
+  { to: '/settings', icon: Settings, label: 'Settings' },
 ];
 
 export default function Sidebar() {
@@ -28,23 +33,37 @@ export default function Sidebar() {
 
       <nav style={{ flex: 1, padding: '12px 10px', overflowY: 'auto' }}>
         <div style={{ marginBottom: 8, padding: '0 8px', fontSize: 10, fontWeight: 600, color: '#475569', textTransform: 'uppercase', letterSpacing: '0.08em' }}>
-          Navigation
+          Playbook
         </div>
-        {navItems.map(({ to, icon: Icon, label, exact }) => (
+        {playbookItems.map(({ to, icon: Icon, label, exact }) => (
           <NavLink
             key={to}
             to={to}
             end={exact}
             style={({ isActive }) => ({
-              display: 'flex',
-              alignItems: 'center',
-              gap: 10,
-              padding: '9px 12px',
-              borderRadius: 8,
-              marginBottom: 2,
-              textDecoration: 'none',
-              fontSize: 14,
-              fontWeight: isActive ? 600 : 400,
+              display: 'flex', alignItems: 'center', gap: 10, padding: '9px 12px', borderRadius: 8, marginBottom: 2,
+              textDecoration: 'none', fontSize: 14, fontWeight: isActive ? 600 : 400,
+              color: isActive ? '#60a5fa' : '#94a3b8',
+              background: isActive ? 'rgba(59,130,246,0.1)' : 'transparent',
+              borderLeft: isActive ? '2px solid #3b82f6' : '2px solid transparent',
+              transition: 'all 0.15s ease',
+            })}
+          >
+            <Icon size={16} />
+            {label}
+          </NavLink>
+        ))}
+
+        <div style={{ margin: '16px 0 8px', padding: '0 8px', fontSize: 10, fontWeight: 600, color: '#475569', textTransform: 'uppercase', letterSpacing: '0.08em' }}>
+          AI Calling
+        </div>
+        {callingItems.map(({ to, icon: Icon, label }) => (
+          <NavLink
+            key={to}
+            to={to}
+            style={({ isActive }) => ({
+              display: 'flex', alignItems: 'center', gap: 10, padding: '9px 12px', borderRadius: 8, marginBottom: 2,
+              textDecoration: 'none', fontSize: 14, fontWeight: isActive ? 600 : 400,
               color: isActive ? '#60a5fa' : '#94a3b8',
               background: isActive ? 'rgba(59,130,246,0.1)' : 'transparent',
               borderLeft: isActive ? '2px solid #3b82f6' : '2px solid transparent',
