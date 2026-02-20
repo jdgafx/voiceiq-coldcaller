@@ -1,5 +1,12 @@
-import { useState } from 'react';
-import { Bot, Copy, CheckCheck, ChevronDown, ChevronUp, Zap, Mic, Settings2, BookOpen } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { motion, AnimatePresence } from 'framer-motion';
+import {
+  Bot, Building2, User, Copy, CheckCheck, ChevronRight,
+  ArrowLeft, ArrowRight, Mic, Settings2, Zap, ExternalLink,
+  Loader2, CheckCircle2, AlertCircle, Clipboard,
+} from 'lucide-react';
+import { getSettings, saveSettings } from '../data/store';
 
 const B2B_SYSTEM_PROMPT = `You are Alex, a professional outbound calling agent for Combined Insurance, a Chubb company. You are calling HR directors, benefits managers, and business owners about supplemental employee benefits.
 
@@ -145,15 +152,20 @@ COMPLIANCE (NON-NEGOTIABLE):
 - Always state a callback number in voicemails`;
 
 const VOICE_SETTINGS = [
-  { label: 'Agent Name', value: 'Alex', note: 'Warm, gender-neutral name. Use in all self-introductions.' },
-  { label: 'Recommended Voice', value: 'Professional, warm (e.g. "Phoebe", "Rachel", or "Marcus")', note: 'Avoid overly robotic or overly casual voices. Select the most human-sounding option available.' },
-  { label: 'Speaking Rate', value: '0.92x – 0.97x', note: 'Slightly slower than default. Allows prospect to process and builds trust. Never rush.' },
-  { label: 'Silence / Pause Tolerance', value: '2.5 – 3.0 seconds', note: 'Wait this long for prospect response before continuing. Cold call prospects need a moment to process.' },
-  { label: 'Interruption Threshold', value: 'Low sensitivity', note: 'Do not cut off the prospect. Let them finish speaking even if they pause mid-sentence.' },
-  { label: 'Max Call Duration', value: '5 minutes (300 seconds)', note: 'Cold calls should be concise. If prospect is interested, close quickly to schedule follow-up.' },
-  { label: 'LLM Temperature', value: '0.65 – 0.75', note: 'Low-to-medium. Professional calls require consistency, but slight variation keeps it human.' },
-  { label: 'Voicemail Detection', value: 'Enabled', note: 'Leave the voicemail script if no answer after 4 rings. Do not leave repeated voicemails — 2 maximum per contact.' },
-  { label: 'Background Noise', value: 'Disabled / Silent', note: 'Office background sounds reduce credibility for insurance calls. Keep clean audio.' },
+  { label: 'Agent Name', value: 'Alex', note: 'Warm, gender-neutral name. Used in all self-introductions.' },
+  { label: 'Voice', value: 'Phoebe', note: 'Warm, professional female voice. Most natural-sounding for insurance sales — builds trust instantly.' },
+  { label: 'Language', value: 'English (US)', note: 'American English. Match the prospect\'s locale.' },
+  { label: 'Speaking Rate', value: '0.95', note: '5% slower than default. Builds trust, gives prospects time to process without feeling sluggish.' },
+  { label: 'Silence Timeout', value: '2.8 seconds', note: 'Pause duration before the agent continues. Gives cold call prospects time to think without awkward silence.' },
+  { label: 'Interruption Sensitivity', value: '0.3', note: 'Low. Never cut off the prospect. Let them finish even if they pause mid-sentence.' },
+  { label: 'Max Call Duration', value: '300 seconds', note: '5 minutes. Cold calls must be concise — close quickly to schedule a specialist follow-up.' },
+  { label: 'LLM Temperature', value: '0.7', note: 'Balanced. Consistent enough for professional calls, varied enough to sound human.' },
+  { label: 'Top-P', value: '0.9', note: 'Nucleus sampling. Keeps responses focused while allowing natural variation.' },
+  { label: 'Max Tokens', value: '250', note: 'Keeps agent responses concise. Cold calls need short, punchy replies — not essays.' },
+  { label: 'Voicemail Detection', value: 'Enabled', note: 'Leave the voicemail script after 4 rings. Maximum 2 voicemails per contact.' },
+  { label: 'End Call on Silence', value: '8 seconds', note: 'Hang up after 8s of dead air. Prevents billing on dropped connections.' },
+  { label: 'Background Noise', value: 'Disabled', note: 'No office sounds. Clean audio is more credible for insurance calls.' },
+  { label: 'First Message Delay', value: '0.5 seconds', note: 'Brief pause after connection before speaking. Feels natural, avoids sounding like a robocall.' },
 ];
 
 const WEBHOOK_CONFIG = [
@@ -180,140 +192,569 @@ function CopyButton({ text }: { text: string }) {
   );
 }
 
-function ExpandablePrompt({ title, prompt, color }: { title: string; prompt: string; color: string }) {
-  const [open, setOpen] = useState(false);
+// ─── PROGRESS BAR ──────────────────────────────────────────────────────────────
+
+const STEP_LABELS = ['Type', 'Script', 'Voice', 'Connect'];
+
+function ProgressBar({ step }: { step: number }) {
   return (
-    <div style={{ background: '#0d0d14', border: `1px solid ${color}30`, borderRadius: 12, overflow: 'hidden', marginBottom: 16 }}>
-      <button
-        onClick={() => setOpen(p => !p)}
-        style={{ width: '100%', padding: '16px 20px', background: 'none', border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'space-between', cursor: 'pointer' }}
-      >
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-          <div style={{ width: 28, height: 28, borderRadius: 7, background: `${color}18`, border: `1px solid ${color}35`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <Bot size={14} color={color} />
+    <div style={{ display: 'flex', alignItems: 'center', marginBottom: 40 }}>
+      {STEP_LABELS.map((label, i) => {
+        const num = i + 1;
+        const isCompleted = num < step;
+        const isActive = num === step;
+        const borderColor = isCompleted ? '#10b981' : isActive ? '#3b82f6' : '#334155';
+        const textColor = isCompleted ? '#10b981' : isActive ? '#3b82f6' : '#475569';
+        const lineColor = num < step ? '#3b82f6' : 'rgba(255,255,255,0.08)';
+
+        return (
+          <div key={label} style={{ display: 'flex', alignItems: 'center', flex: i < STEP_LABELS.length - 1 ? 1 : undefined }}>
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6 }}>
+              <motion.div
+                layoutId={`step-circle-${num}`}
+                style={{
+                  width: 32, height: 32, borderRadius: '50%',
+                  background: isCompleted ? '#10b981' : isActive ? 'rgba(59,130,246,0.2)' : '#0d0d14',
+                  border: `2px solid ${borderColor}`,
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  fontSize: 12, fontWeight: 700, color: isCompleted ? '#fff' : textColor,
+                  transition: 'all 0.3s ease',
+                }}
+              >
+                {isCompleted ? <CheckCheck size={14} /> : num}
+              </motion.div>
+              <span style={{ fontSize: 11, fontWeight: 600, color: textColor, letterSpacing: '0.04em', whiteSpace: 'nowrap' }}>
+                {label}
+              </span>
+            </div>
+            {i < STEP_LABELS.length - 1 && (
+              <div style={{ flex: 1, height: 2, margin: '0 8px', marginBottom: 18, background: lineColor, borderRadius: 2, transition: 'background 0.3s ease' }} />
+            )}
           </div>
-          <span style={{ fontSize: 15, fontWeight: 700, color: '#f1f5f9' }}>{title}</span>
-          <span style={{ fontSize: 11, color: '#475569', background: 'rgba(255,255,255,0.05)', padding: '2px 8px', borderRadius: 4 }}>{prompt.split(' ').length} words</span>
-        </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-          <CopyButton text={prompt} />
-          {open ? <ChevronUp size={16} color="#475569" /> : <ChevronDown size={16} color="#475569" />}
-        </div>
-      </button>
-      {open && (
-        <div style={{ borderTop: `1px solid rgba(255,255,255,0.06)`, padding: '16px 20px' }}>
-          <pre style={{ margin: 0, fontSize: 12, color: '#94a3b8', lineHeight: 1.7, whiteSpace: 'pre-wrap', fontFamily: 'ui-monospace, monospace' }}>
-            {prompt}
-          </pre>
-        </div>
-      )}
+        );
+      })}
     </div>
   );
 }
 
-const sectionCard: React.CSSProperties = {
-  background: '#0d0d14',
-  border: '1px solid rgba(255,255,255,0.06)',
-  borderRadius: 12,
-  padding: 24,
-  marginBottom: 20,
+// ─── MOTION VARIANTS ──────────────────────────────────────────────────────────
+
+const variants = {
+  enter: (direction: number) => ({
+    x: direction > 0 ? 60 : -60,
+    opacity: 0,
+    filter: 'blur(4px)',
+  }),
+  center: {
+    x: 0,
+    opacity: 1,
+    filter: 'blur(0px)',
+  },
+  exit: (direction: number) => ({
+    x: direction > 0 ? -60 : 60,
+    opacity: 0,
+    filter: 'blur(4px)',
+  }),
 };
 
-export default function AgentSetup() {
+// ─── STEP 1: CHOOSE TYPE ───────────────────────────────────────────────────────
+
+function StepChooseType({
+  agentType,
+  setAgentType,
+  onNext,
+}: {
+  agentType: 'b2b' | 'b2c' | null;
+  setAgentType: (t: 'b2b' | 'b2c') => void;
+  onNext: () => void;
+}) {
   return (
-    <div style={{ padding: '32px 40px', maxWidth: 860 }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 8 }}>
-        <div style={{ width: 40, height: 40, background: 'rgba(20,184,166,0.15)', border: '1px solid rgba(20,184,166,0.3)', borderRadius: 10, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-          <Bot size={20} color="#2dd4bf" />
-        </div>
-        <div>
-          <h1 style={{ margin: 0, fontSize: 22, fontWeight: 700, color: '#f8fafc' }}>Agent Setup</h1>
-          <p style={{ margin: 0, fontSize: 13, color: '#64748b' }}>Dialora AI configuration — copy these settings into your Dialora dashboard</p>
-        </div>
+    <div>
+      <h2 style={{ margin: '0 0 8px', fontSize: 22, fontWeight: 700, color: '#f8fafc' }}>
+        What type of agent are you setting up?
+      </h2>
+      <p style={{ margin: '0 0 32px', fontSize: 14, color: '#64748b', lineHeight: 1.6 }}>
+        Choose the calling script that matches your target audience
+      </p>
+
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 32 }}>
+        {/* B2B Card */}
+        <button
+          onClick={() => setAgentType('b2b')}
+          style={{
+            background: agentType === 'b2b' ? 'rgba(59,130,246,0.08)' : '#0d0d14',
+            border: `2px solid ${agentType === 'b2b' ? '#3b82f6' : 'rgba(255,255,255,0.06)'}`,
+            borderRadius: 14, padding: 24, cursor: 'pointer', textAlign: 'left',
+            transition: 'all 0.2s ease',
+          }}
+        >
+          <div style={{ width: 44, height: 44, borderRadius: 11, background: agentType === 'b2b' ? 'rgba(59,130,246,0.2)' : 'rgba(255,255,255,0.05)', border: `1px solid ${agentType === 'b2b' ? 'rgba(59,130,246,0.4)' : 'rgba(255,255,255,0.08)'}`, display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 16 }}>
+            <Building2 size={22} color={agentType === 'b2b' ? '#3b82f6' : '#64748b'} />
+          </div>
+          <div style={{ fontSize: 17, fontWeight: 700, color: agentType === 'b2b' ? '#60a5fa' : '#e2e8f0', marginBottom: 6 }}>B2B Agent</div>
+          <div style={{ fontSize: 12, color: '#94a3b8', marginBottom: 10, fontWeight: 500 }}>HR Directors, Benefits Managers, Business Owners</div>
+          <div style={{ fontSize: 13, color: '#64748b', lineHeight: 1.6 }}>
+            Schedule 20-minute specialist appointments. Professional, consultative tone.
+          </div>
+        </button>
+
+        {/* B2C Card */}
+        <button
+          onClick={() => setAgentType('b2c')}
+          style={{
+            background: agentType === 'b2c' ? 'rgba(20,184,166,0.08)' : '#0d0d14',
+            border: `2px solid ${agentType === 'b2c' ? '#14b8a6' : 'rgba(255,255,255,0.06)'}`,
+            borderRadius: 14, padding: 24, cursor: 'pointer', textAlign: 'left',
+            transition: 'all 0.2s ease',
+          }}
+        >
+          <div style={{ width: 44, height: 44, borderRadius: 11, background: agentType === 'b2c' ? 'rgba(20,184,166,0.2)' : 'rgba(255,255,255,0.05)', border: `1px solid ${agentType === 'b2c' ? 'rgba(20,184,166,0.4)' : 'rgba(255,255,255,0.08)'}`, display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 16 }}>
+            <User size={22} color={agentType === 'b2c' ? '#14b8a6' : '#64748b'} />
+          </div>
+          <div style={{ fontSize: 17, fontWeight: 700, color: agentType === 'b2c' ? '#2dd4bf' : '#e2e8f0', marginBottom: 6 }}>B2C Agent</div>
+          <div style={{ fontSize: 12, color: '#94a3b8', marginBottom: 10, fontWeight: 500 }}>Individual Consumers & Families</div>
+          <div style={{ fontSize: 13, color: '#64748b', lineHeight: 1.6 }}>
+            Schedule 15-minute specialist calls. Warm, empathetic tone.
+          </div>
+        </button>
       </div>
 
-      <div style={{ background: 'rgba(20,184,166,0.06)', border: '1px solid rgba(20,184,166,0.2)', borderRadius: 10, padding: '12px 16px', marginBottom: 28, display: 'flex', gap: 10 }}>
-        <Zap size={14} color="#2dd4bf" style={{ flexShrink: 0, marginTop: 1 }} />
-        <p style={{ margin: 0, fontSize: 13, color: '#94a3b8', lineHeight: 1.6 }}>
-          Create two agents in your <strong style={{ color: '#e2e8f0' }}>Dialora dashboard</strong> — one B2B, one B2C. Paste the system prompt, apply the voice settings below, then copy each agent's webhook URL into <strong style={{ color: '#e2e8f0' }}>VoiceIQ → Settings</strong>. Set the callback URL in Dialora so call results auto-sync to your pipeline.
-        </p>
+      <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+        <button
+          onClick={onNext}
+          disabled={agentType === null}
+          style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '12px 24px', background: agentType ? 'linear-gradient(135deg, #3b82f6, #14b8a6)' : 'rgba(255,255,255,0.05)', border: 'none', borderRadius: 10, color: agentType ? '#fff' : '#475569', fontSize: 14, fontWeight: 600, cursor: agentType ? 'pointer' : 'not-allowed', opacity: agentType ? 1 : 0.5, transition: 'all 0.2s ease' }}
+        >
+          Continue <ArrowRight size={16} />
+        </button>
+      </div>
+    </div>
+  );
+}
+
+// ─── STEP 2: SCRIPT PREVIEW ────────────────────────────────────────────────────
+
+function StepScriptPreview({
+  agentType,
+  onNext,
+  onBack,
+}: {
+  agentType: 'b2b' | 'b2c';
+  onNext: () => void;
+  onBack: () => void;
+}) {
+  const prompt = agentType === 'b2b' ? B2B_SYSTEM_PROMPT : B2C_SYSTEM_PROMPT;
+  const label = agentType === 'b2b' ? 'B2B' : 'B2C';
+
+  const openingMatch = prompt.match(/OPENING:\n([\s\S]*?)(?=\n---)/);
+  const valueMatch = prompt.match(/VALUE PROPOSITION:\n([\s\S]*?)(?=\n---)/);
+  const closeMatch = prompt.match(/CLOSE:\n([\s\S]*?)(?=\n---)/);
+
+  const openingText = openingMatch ? openingMatch[1].trim().split('\n').slice(0, 2).join(' ') : '';
+  const valueText = valueMatch ? valueMatch[1].trim().split('\n').slice(0, 2).join(' ') : '';
+  const closeText = closeMatch ? closeMatch[1].trim().split('\n').slice(0, 2).join(' ') : '';
+
+  const chips = [
+    { label: 'Opening', text: openingText, color: '#3b82f6' },
+    { label: 'Value Prop', text: valueText, color: '#a78bfa' },
+    { label: 'Close', text: closeText, color: '#10b981' },
+  ];
+
+  return (
+    <div>
+      <h2 style={{ margin: '0 0 8px', fontSize: 22, fontWeight: 700, color: '#f8fafc' }}>
+        Review Your {label} Agent's Script
+      </h2>
+      <p style={{ margin: '0 0 20px', fontSize: 14, color: '#64748b', lineHeight: 1.6 }}>
+        This system prompt will be pasted into your Dialora agent. Alex will follow this script on every call.
+      </p>
+
+      <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 12 }}>
+        <CopyButton text={prompt} />
       </div>
 
-      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 16 }}>
-        <BookOpen size={16} color="#60a5fa" />
-        <h2 style={{ margin: 0, fontSize: 16, fontWeight: 700, color: '#e2e8f0' }}>System Prompts</h2>
-        <span style={{ fontSize: 11, color: '#475569' }}>— Click to expand, copy to Dialora</span>
+      <div style={{ background: 'rgba(0,0,0,0.3)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 10, padding: 20, maxHeight: 380, overflowY: 'auto', marginBottom: 20 }}>
+        <pre style={{ margin: 0, fontSize: 12, color: '#94a3b8', lineHeight: 1.7, whiteSpace: 'pre-wrap', fontFamily: 'ui-monospace, monospace' }}>
+          {prompt}
+        </pre>
       </div>
 
-      <ExpandablePrompt title="B2B Agent — Alex (HR / Business Owners)" prompt={B2B_SYSTEM_PROMPT} color="#3b82f6" />
-      <ExpandablePrompt title="B2C Agent — Alex (Individual Consumers)" prompt={B2C_SYSTEM_PROMPT} color="#14b8a6" />
-
-      <div style={{ display: 'flex', alignItems: 'center', gap: 8, margin: '28px 0 16px' }}>
-        <Mic size={16} color="#a78bfa" />
-        <h2 style={{ margin: 0, fontSize: 16, fontWeight: 700, color: '#e2e8f0' }}>Voice & Behavior Settings</h2>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 10, marginBottom: 32 }}>
+        {chips.map(chip => (
+          <div
+            key={chip.label}
+            style={{ background: '#0d0d14', border: '1px solid rgba(255,255,255,0.06)', borderLeft: `3px solid ${chip.color}`, borderRadius: 8, padding: '10px 12px' }}
+          >
+            <div style={{ fontSize: 10, fontWeight: 700, color: chip.color, textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 5 }}>{chip.label}</div>
+            <div style={{ fontSize: 11, color: '#64748b', lineHeight: 1.5, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
+              {chip.text}
+            </div>
+          </div>
+        ))}
       </div>
 
-      <div style={sectionCard}>
+      <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+        <button
+          onClick={onBack}
+          style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '12px 20px', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 10, color: '#94a3b8', fontSize: 14, fontWeight: 600, cursor: 'pointer' }}
+        >
+          <ArrowLeft size={16} /> Back
+        </button>
+        <button
+          onClick={onNext}
+          style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '12px 24px', background: 'linear-gradient(135deg, #3b82f6, #14b8a6)', border: 'none', borderRadius: 10, color: '#fff', fontSize: 14, fontWeight: 600, cursor: 'pointer' }}
+        >
+          Continue <ArrowRight size={16} />
+        </button>
+      </div>
+    </div>
+  );
+}
+
+// ─── STEP 3: VOICE SETTINGS ────────────────────────────────────────────────────
+
+function StepVoiceSettings({ onNext, onBack }: { onNext: () => void; onBack: () => void }) {
+  const allSettingsText = 'VoiceIQ Agent Settings:\n' + VOICE_SETTINGS.map(s => `• ${s.label}: ${s.value}`).join('\n');
+
+  return (
+    <div>
+      <h2 style={{ margin: '0 0 8px', fontSize: 22, fontWeight: 700, color: '#f8fafc' }}>
+        Voice & Behavior Settings
+      </h2>
+      <p style={{ margin: '0 0 20px', fontSize: 14, color: '#64748b', lineHeight: 1.6 }}>
+        Apply these exact settings to your Dialora agent for optimal cold call performance
+      </p>
+
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16 }}>
+        <Mic size={15} color="#a78bfa" />
+        <span style={{ fontSize: 13, fontWeight: 600, color: '#e2e8f0' }}>14 Settings</span>
+        <div style={{ flex: 1 }} />
+        <CopyButton text={allSettingsText} />
+      </div>
+
+      <div style={{ background: '#0d0d14', border: '1px solid rgba(255,255,255,0.06)', borderRadius: 12, overflow: 'hidden', marginBottom: 32 }}>
         <table style={{ width: '100%', borderCollapse: 'collapse' }}>
           <thead>
             <tr style={{ borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
-              <th style={{ padding: '8px 12px', textAlign: 'left', fontSize: 11, fontWeight: 600, color: '#475569', textTransform: 'uppercase', letterSpacing: '0.06em', width: '22%' }}>Setting</th>
-              <th style={{ padding: '8px 12px', textAlign: 'left', fontSize: 11, fontWeight: 600, color: '#475569', textTransform: 'uppercase', letterSpacing: '0.06em', width: '30%' }}>Value</th>
-              <th style={{ padding: '8px 12px', textAlign: 'left', fontSize: 11, fontWeight: 600, color: '#475569', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Why</th>
+              <th style={{ padding: '10px 14px', textAlign: 'left', fontSize: 11, fontWeight: 600, color: '#475569', textTransform: 'uppercase', letterSpacing: '0.06em', width: '26%' }}>Setting</th>
+              <th style={{ padding: '10px 14px', textAlign: 'left', fontSize: 11, fontWeight: 600, color: '#475569', textTransform: 'uppercase', letterSpacing: '0.06em', width: '28%' }}>Value</th>
+              <th style={{ padding: '10px 14px', textAlign: 'left', fontSize: 11, fontWeight: 600, color: '#475569', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Why</th>
             </tr>
           </thead>
           <tbody>
             {VOICE_SETTINGS.map((s, i) => (
               <tr key={s.label} style={{ borderBottom: i < VOICE_SETTINGS.length - 1 ? '1px solid rgba(255,255,255,0.04)' : 'none' }}>
-                <td style={{ padding: '12px', fontSize: 13, fontWeight: 600, color: '#e2e8f0' }}>{s.label}</td>
-                <td style={{ padding: '12px' }}>
+                <td style={{ padding: '11px 14px', fontSize: 13, fontWeight: 600, color: '#e2e8f0' }}>{s.label}</td>
+                <td style={{ padding: '11px 14px' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                    <span style={{ fontSize: 13, color: '#a78bfa', fontFamily: 'ui-monospace, monospace', background: 'rgba(139,92,246,0.1)', padding: '2px 8px', borderRadius: 4 }}>{s.value}</span>
+                    <span style={{ fontSize: 12, color: '#a78bfa', fontFamily: 'ui-monospace, monospace', background: 'rgba(139,92,246,0.1)', padding: '2px 8px', borderRadius: 4 }}>{s.value}</span>
                     <CopyButton text={s.value} />
                   </div>
                 </td>
-                <td style={{ padding: '12px', fontSize: 12, color: '#64748b', lineHeight: 1.5 }}>{s.note}</td>
+                <td style={{ padding: '11px 14px', fontSize: 12, color: '#64748b', lineHeight: 1.5 }}>{s.note}</td>
               </tr>
             ))}
           </tbody>
         </table>
       </div>
 
-      <div style={{ display: 'flex', alignItems: 'center', gap: 8, margin: '28px 0 16px' }}>
-        <Settings2 size={16} color="#f59e0b" />
-        <h2 style={{ margin: 0, fontSize: 16, fontWeight: 700, color: '#e2e8f0' }}>Webhook Configuration</h2>
+      <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+        <button
+          onClick={onBack}
+          style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '12px 20px', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 10, color: '#94a3b8', fontSize: 14, fontWeight: 600, cursor: 'pointer' }}
+        >
+          <ArrowLeft size={16} /> Back
+        </button>
+        <button
+          onClick={onNext}
+          style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '12px 24px', background: 'linear-gradient(135deg, #3b82f6, #14b8a6)', border: 'none', borderRadius: 10, color: '#fff', fontSize: 14, fontWeight: 600, cursor: 'pointer' }}
+        >
+          Continue <ArrowRight size={16} />
+        </button>
       </div>
+    </div>
+  );
+}
 
-      <div style={sectionCard}>
-        {WEBHOOK_CONFIG.map((w, i) => (
-          <div key={w.label} style={{ borderBottom: i < WEBHOOK_CONFIG.length - 1 ? '1px solid rgba(255,255,255,0.05)' : 'none', paddingBottom: i < WEBHOOK_CONFIG.length - 1 ? 16 : 0, marginBottom: i < WEBHOOK_CONFIG.length - 1 ? 16 : 0 }}>
-            <div style={{ fontSize: 11, fontWeight: 600, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 8 }}>{w.label}</div>
-            <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10, marginBottom: 6 }}>
-              <code style={{ flex: 1, fontSize: 12, color: '#f59e0b', background: 'rgba(245,158,11,0.08)', border: '1px solid rgba(245,158,11,0.2)', borderRadius: 6, padding: '8px 12px', display: 'block', wordBreak: 'break-all', lineHeight: 1.6 }}>{w.value}</code>
-              <CopyButton text={w.value} />
+// ─── STEP 4: CONNECT ───────────────────────────────────────────────────────────
+
+function StepConnect({
+  agentType,
+  webhookUrl,
+  setWebhookUrl,
+  onBack,
+  onFinish,
+  onSetupOther,
+}: {
+  agentType: 'b2b' | 'b2c';
+  webhookUrl: string;
+  setWebhookUrl: (v: string) => void;
+  onBack: () => void;
+  onFinish: () => void;
+  onSetupOther: () => void;
+}) {
+  const [testState, setTestState] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
+  const [saved, setSaved] = useState(false);
+  const callbackUrl = WEBHOOK_CONFIG[1].value.replace('POST ', '');
+  const label = agentType === 'b2b' ? 'B2B' : 'B2C';
+  const otherLabel = agentType === 'b2b' ? 'B2C' : 'B2B';
+
+  async function handleTest() {
+    if (!webhookUrl) return;
+    setTestState('loading');
+    try {
+      const res = await fetch('/api/trigger-call', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ webhookUrl, contact: { name: 'Test Contact', phone: '+15555550000' } }),
+      });
+      setTestState(res.ok ? 'success' : 'error');
+    } catch {
+      setTestState('error');
+    }
+  }
+
+  function handleSave() {
+    const settings = getSettings();
+    if (agentType === 'b2b') {
+      settings.b2bWebhookUrl = webhookUrl;
+    } else {
+      settings.b2cWebhookUrl = webhookUrl;
+    }
+    saveSettings(settings);
+    setSaved(true);
+  }
+
+  if (saved) {
+    return (
+      <div style={{ textAlign: 'center', padding: '32px 0' }}>
+        <div style={{ width: 64, height: 64, borderRadius: '50%', background: 'rgba(16,185,129,0.15)', border: '2px solid rgba(16,185,129,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 20px' }}>
+          <CheckCircle2 size={32} color="#10b981" />
+        </div>
+        <h2 style={{ margin: '0 0 10px', fontSize: 24, fontWeight: 700, color: '#f8fafc' }}>Setup Complete!</h2>
+        <p style={{ margin: '0 0 32px', fontSize: 14, color: '#64748b' }}>
+          Your {label} agent is configured and ready to go.
+        </p>
+        <div style={{ display: 'flex', gap: 12, justifyContent: 'center' }}>
+          <button
+            onClick={onSetupOther}
+            style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '12px 20px', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 10, color: '#94a3b8', fontSize: 14, fontWeight: 600, cursor: 'pointer' }}
+          >
+            <Bot size={16} /> Set up {otherLabel} Agent
+          </button>
+          <button
+            onClick={onFinish}
+            style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '12px 24px', background: 'linear-gradient(135deg, #3b82f6, #14b8a6)', border: 'none', borderRadius: 10, color: '#fff', fontSize: 14, fontWeight: 600, cursor: 'pointer' }}
+          >
+            Go to Campaigns <ChevronRight size={16} />
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  const setupSteps: Array<{ text: string; link: boolean; code?: string }> = [
+    { text: 'Go to Dialora Dashboard → Create New Agent', link: true },
+    { text: 'Paste the System Prompt from Step 2', link: false },
+    { text: 'Apply Voice Settings from Step 3', link: false },
+    { text: 'Set the callback URL to:', link: false, code: callbackUrl },
+    { text: "Copy your agent's Webhook URL and paste it below", link: false },
+  ];
+
+  return (
+    <div>
+      <h2 style={{ margin: '0 0 8px', fontSize: 22, fontWeight: 700, color: '#f8fafc' }}>
+        Connect Your Agent
+      </h2>
+      <p style={{ margin: '0 0 28px', fontSize: 14, color: '#64748b', lineHeight: 1.6 }}>
+        Create your agent in Dialora's dashboard, then paste the webhook URL here
+      </p>
+
+      {/* Numbered steps */}
+      <div style={{ marginBottom: 28 }}>
+        {setupSteps.map((s, i) => (
+          <div key={i} style={{ display: 'flex', gap: 14 }}>
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', flexShrink: 0 }}>
+              <div style={{ width: 28, height: 28, borderRadius: '50%', background: 'rgba(59,130,246,0.15)', border: '1px solid rgba(59,130,246,0.3)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 700, color: '#60a5fa' }}>
+                {i + 1}
+              </div>
+              {i < setupSteps.length - 1 && (
+                <div style={{ width: 1, flex: 1, background: 'rgba(255,255,255,0.06)', minHeight: 28 }} />
+              )}
             </div>
-            <p style={{ margin: 0, fontSize: 12, color: '#64748b', lineHeight: 1.5 }}>{w.note}</p>
+            <div style={{ paddingBottom: i < setupSteps.length - 1 ? 20 : 0, paddingTop: 4 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                <span style={{ fontSize: 13, color: '#e2e8f0', lineHeight: 1.5 }}>{s.text}</span>
+                {s.link && <ExternalLink size={13} color="#60a5fa" />}
+              </div>
+              {s.code && (
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 6 }}>
+                  <code style={{ fontSize: 11, color: '#f59e0b', background: 'rgba(245,158,11,0.08)', border: '1px solid rgba(245,158,11,0.2)', borderRadius: 6, padding: '4px 10px', wordBreak: 'break-all' }}>
+                    {s.code}
+                  </code>
+                  <CopyButton text={s.code} />
+                </div>
+              )}
+            </div>
           </div>
         ))}
       </div>
 
-      <div style={{ background: 'rgba(59,130,246,0.06)', border: '1px solid rgba(59,130,246,0.2)', borderRadius: 10, padding: '14px 18px', marginTop: 8 }}>
-        <div style={{ fontSize: 13, fontWeight: 700, color: '#60a5fa', marginBottom: 6 }}>Setup Checklist</div>
-        {[
-          'Create B2B agent in Dialora → paste B2B system prompt above',
-          'Create B2C agent in Dialora → paste B2C system prompt above',
-          'Apply voice settings to both agents',
-          'Set Dialora callback URL to: https://voiceiq-coldcaller.netlify.app/api/call-result',
-          'Map callback fields: contactId, campaignId, phone, status, duration, recording_url, transcript, lead_status',
-          'Copy each agent\'s webhook URL → VoiceIQ Settings → B2B/B2C Webhook URL',
-          'Create a campaign, import contacts, and hit Launch',
-        ].map((step, i) => (
-          <div key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: 8, marginBottom: 5, fontSize: 13, color: '#94a3b8' }}>
-            <span style={{ width: 18, height: 18, background: 'rgba(59,130,246,0.2)', borderRadius: '50%', fontSize: 10, fontWeight: 700, color: '#60a5fa', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, marginTop: 1 }}>{i + 1}</span>
-            {step}
+      {/* Webhook URL Input */}
+      <div style={{ marginBottom: 20 }}>
+        <label style={{ display: 'block', fontSize: 13, fontWeight: 600, color: '#94a3b8', marginBottom: 8 }}>
+          {label} Agent Webhook URL
+        </label>
+        <div style={{ display: 'flex', gap: 10 }}>
+          <div style={{ flex: 1, position: 'relative' }}>
+            <Clipboard size={14} color="#475569" style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)' }} />
+            <input
+              type="text"
+              value={webhookUrl}
+              onChange={e => setWebhookUrl(e.target.value)}
+              placeholder="https://api.dialora.ai/webhooks/agents/..."
+              style={{ width: '100%', boxSizing: 'border-box', padding: '12px 14px 12px 34px', background: '#0d0d14', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 10, color: '#f1f5f9', fontSize: 13, fontFamily: 'ui-monospace, monospace', outline: 'none' }}
+            />
           </div>
-        ))}
+          <button
+            onClick={handleTest}
+            disabled={!webhookUrl || testState === 'loading'}
+            style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '12px 18px', background: testState === 'success' ? 'rgba(16,185,129,0.15)' : testState === 'error' ? 'rgba(239,68,68,0.12)' : 'rgba(255,255,255,0.06)', border: `1px solid ${testState === 'success' ? 'rgba(16,185,129,0.3)' : testState === 'error' ? 'rgba(239,68,68,0.3)' : 'rgba(255,255,255,0.1)'}`, borderRadius: 10, color: testState === 'success' ? '#10b981' : testState === 'error' ? '#f87171' : '#94a3b8', fontSize: 13, fontWeight: 600, cursor: !webhookUrl || testState === 'loading' ? 'not-allowed' : 'pointer', opacity: !webhookUrl ? 0.5 : 1, flexShrink: 0, whiteSpace: 'nowrap' }}
+          >
+            {testState === 'loading' && <Loader2 size={14} style={{ animation: 'spin 1s linear infinite' }} />}
+            {testState === 'success' && <CheckCircle2 size={14} />}
+            {testState === 'error' && <AlertCircle size={14} />}
+            {testState === 'idle' && <Zap size={14} />}
+            {testState === 'loading' ? 'Testing...' : testState === 'success' ? 'Connected!' : testState === 'error' ? 'Failed' : 'Test'}
+          </button>
+        </div>
+        {testState === 'error' && (
+          <p style={{ margin: '8px 0 0', fontSize: 12, color: '#f87171' }}>
+            Connection failed — check your webhook URL and try again.
+          </p>
+        )}
+        {testState === 'success' && (
+          <p style={{ margin: '8px 0 0', fontSize: 12, color: '#10b981' }}>
+            Connection successful! Ready to save.
+          </p>
+        )}
       </div>
+
+      <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+        <button
+          onClick={onBack}
+          style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '12px 20px', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 10, color: '#94a3b8', fontSize: 14, fontWeight: 600, cursor: 'pointer' }}
+        >
+          <ArrowLeft size={16} /> Back
+        </button>
+        <button
+          onClick={handleSave}
+          disabled={!webhookUrl}
+          style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '12px 28px', background: webhookUrl ? 'linear-gradient(135deg, #3b82f6, #14b8a6)' : 'rgba(255,255,255,0.05)', border: 'none', borderRadius: 10, color: webhookUrl ? '#fff' : '#475569', fontSize: 14, fontWeight: 600, cursor: webhookUrl ? 'pointer' : 'not-allowed', opacity: webhookUrl ? 1 : 0.5, transition: 'all 0.2s ease' }}
+        >
+          Save & Finish <CheckCircle2 size={16} />
+        </button>
+      </div>
+    </div>
+  );
+}
+
+// ─── MAIN COMPONENT ────────────────────────────────────────────────────────────
+
+export default function AgentSetup() {
+  const navigate = useNavigate();
+  const [[step, direction], setStep] = useState<[number, number]>([1, 1]);
+  const [agentType, setAgentType] = useState<'b2b' | 'b2c' | null>(null);
+  const [webhookUrl, setWebhookUrl] = useState('');
+
+  useEffect(() => {
+    if (agentType) {
+      const settings = getSettings();
+      setWebhookUrl(agentType === 'b2b' ? settings.b2bWebhookUrl : settings.b2cWebhookUrl);
+    }
+  }, [agentType]);
+
+  function goNext() {
+    setStep([step + 1, 1]);
+  }
+
+  function goBack() {
+    setStep([step - 1, -1]);
+  }
+
+  function handleFinish() {
+    navigate('/campaigns');
+  }
+
+  function handleSetupOther() {
+    setAgentType(agentType === 'b2b' ? 'b2c' : 'b2b');
+    setWebhookUrl('');
+    setStep([1, -1]);
+  }
+
+  return (
+    <div style={{ padding: '32px 40px', maxWidth: 860 }}>
+      {/* Header */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 32 }}>
+        <div style={{ width: 40, height: 40, background: 'rgba(59,130,246,0.12)', border: '1px solid rgba(59,130,246,0.25)', borderRadius: 10, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <Settings2 size={20} color="#60a5fa" />
+        </div>
+        <div>
+          <h1 style={{ margin: 0, fontSize: 22, fontWeight: 700, color: '#f8fafc' }}>Agent Setup Wizard</h1>
+          <p style={{ margin: 0, fontSize: 13, color: '#64748b' }}>Configure your Dialora AI calling agent in 4 steps</p>
+        </div>
+      </div>
+
+      {/* Progress bar */}
+      <ProgressBar step={step} />
+
+      {/* Step content with framer transitions */}
+      <AnimatePresence mode="wait" custom={direction}>
+        <motion.div
+          key={step}
+          custom={direction}
+          variants={variants}
+          initial="enter"
+          animate="center"
+          exit="exit"
+          transition={{ duration: 0.3, ease: [0.25, 0.1, 0.25, 1] }}
+        >
+          {step === 1 && (
+            <StepChooseType
+              agentType={agentType}
+              setAgentType={setAgentType}
+              onNext={goNext}
+            />
+          )}
+          {step === 2 && agentType && (
+            <StepScriptPreview
+              agentType={agentType}
+              onNext={goNext}
+              onBack={goBack}
+            />
+          )}
+          {step === 3 && (
+            <StepVoiceSettings
+              onNext={goNext}
+              onBack={goBack}
+            />
+          )}
+          {step === 4 && agentType && (
+            <StepConnect
+              agentType={agentType}
+              webhookUrl={webhookUrl}
+              setWebhookUrl={setWebhookUrl}
+              onBack={goBack}
+              onFinish={handleFinish}
+              onSetupOther={handleSetupOther}
+            />
+          )}
+        </motion.div>
+      </AnimatePresence>
+
+      <style>{`
+        @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+      `}</style>
     </div>
   );
 }

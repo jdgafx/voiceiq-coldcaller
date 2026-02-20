@@ -1,10 +1,8 @@
+functionsDirectory = "/home/chris/dev/CUSTOMER_PROJECTS/convertiq.com/VoiceIQ_ColdCaller/app/netlify/functions"
+functionsDirectoryOrigin = "default"
 redirectsOrigin = "config"
 plugins = []
 headers = []
-
-[functions]
-
-[functions."*"]
 
 [build]
 publish = "/home/chris/dev/CUSTOMER_PROJECTS/convertiq.com/VoiceIQ_ColdCaller/app/dist"
@@ -12,6 +10,7 @@ publishOrigin = "config"
 commandOrigin = "config"
 base = "/home/chris/dev/CUSTOMER_PROJECTS/convertiq.com/VoiceIQ_ColdCaller/app"
 command = "npm run build"
+functions = "/home/chris/dev/CUSTOMER_PROJECTS/convertiq.com/VoiceIQ_ColdCaller/app/netlify/functions"
 
 [build.environment]
 
@@ -26,6 +25,10 @@ command = "npm run build"
 [build.processing.js]
 
 [build.services]
+
+[functions]
+
+[functions."*"]
 
 [[redirects]]
 from = "/*"
