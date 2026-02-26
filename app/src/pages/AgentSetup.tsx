@@ -704,10 +704,18 @@ export default function AgentSetup() {
         <div style={{ width: 40, height: 40, background: 'rgba(59,130,246,0.12)', border: '1px solid rgba(59,130,246,0.25)', borderRadius: 10, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
           <Settings2 size={20} color="#60a5fa" />
         </div>
-        <div>
+        <div style={{ flex: 1 }}>
           <h1 style={{ margin: 0, fontSize: 22, fontWeight: 700, color: '#f8fafc' }}>Agent Setup Wizard</h1>
           <p style={{ margin: 0, fontSize: 13, color: '#64748b' }}>Configure your Dialora AI calling agent in 4 steps</p>
         </div>
+        <a
+          href="https://www.dialora.ai"
+          target="_blank"
+          rel="noopener noreferrer"
+          style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '10px 18px', background: 'rgba(59,130,246,0.1)', border: '1px solid rgba(59,130,246,0.25)', borderRadius: 8, color: '#60a5fa', fontSize: 13, fontWeight: 600, textDecoration: 'none', whiteSpace: 'nowrap' }}
+        >
+          <ExternalLink size={14} /> Open Dialora Dashboard
+        </a>
       </div>
 
       {/* Progress bar */}
