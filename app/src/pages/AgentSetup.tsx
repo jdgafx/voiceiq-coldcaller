@@ -584,8 +584,13 @@ function StepConnect({
             </div>
             <div style={{ paddingBottom: i < setupSteps.length - 1 ? 20 : 0, paddingTop: 4 }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-                <span style={{ fontSize: 13, color: '#e2e8f0', lineHeight: 1.5 }}>{s.text}</span>
-                {s.link && <ExternalLink size={13} color="#60a5fa" />}
+                {s.link ? (
+                  <a href="https://www.dialora.ai" target="_blank" rel="noopener noreferrer" style={{ fontSize: 13, color: '#60a5fa', lineHeight: 1.5, textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+                    {s.text} <ExternalLink size={13} />
+                  </a>
+                ) : (
+                  <span style={{ fontSize: 13, color: '#e2e8f0', lineHeight: 1.5 }}>{s.text}</span>
+                )}
               </div>
               {s.code && (
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 6 }}>

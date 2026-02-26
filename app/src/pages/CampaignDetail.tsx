@@ -1,12 +1,13 @@
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef, useCallback, Fragment } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
   ArrowLeft, Upload, UserPlus, Play, Pause, Square,
   RotateCcw, CheckCircle2, XCircle, Clock, PhoneCall,
-  Ban, Trash2, Building2, User,
+  Ban, Trash2, Building2, User, ChevronDown, ChevronUp,
+  FileText, Headphones, Timer,
 } from 'lucide-react';
 import { getCampaignById, saveCampaign } from '../data/store';
-import type { Campaign, Contact, LeadStatus } from '../types';
+import type { Campaign, Contact, LeadStatus, CallResult } from '../types';
 
 const LEAD_STATUS_OPTIONS: { value: LeadStatus; label: string; color: string }[] = [
   { value: 'hot',           label: 'HOT',           color: '#ef4444' },
@@ -68,6 +69,17 @@ const labelStyle: React.CSSProperties = {
   letterSpacing: '0.06em',
 };
 
+function normalizeLeadStatus(raw?: string | null): LeadStatus | undefined {
+  if (!raw) return undefined;
+  const lower = raw.toLowerCase().replace(/[\s-]/g, '_');
+  const map: Record<string, LeadStatus> = {
+    hot: 'hot', warm: 'warm', cold: 'cold',
+    not_interested: 'not_interested', callback: 'callback',
+    voicemail: 'voicemail', unqualified: 'unqualified',
+  };
+  return map[lower];
+}
+
 export default function CampaignDetail() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
@@ -78,12 +90,70 @@ export default function CampaignDetail() {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [newContact, setNewContact] = useState({ name: '', phone: '', email: '', company: '', notes: '' });
+  const [expandedId, setExpandedId] = useState<string | null>(null);
+  const campaignRef = useRef<Campaign | null>(null);
+  campaignRef.current = campaign;
 
   useEffect(() => {
     if (id) {
       const c = getCampaignById(id);
       if (c) setCampaign(c);
     }
+  }, [id]);
+
+  // Poll for call results when contacts are in 'calling' state
+  useEffect(() => {
+    const interval = setInterval(async () => {
+      const current = campaignRef.current;
+      if (!current) return;
+
+      const callingContacts = current.contacts.filter(c => c.status === 'calling');
+      if (callingContacts.length === 0) return;
+
+      const lookupIds = callingContacts.flatMap(c => [c.id, c.phone.replace(/\D/g, '')]).filter(Boolean);
+
+      try {
+        const resp = await fetch(`/api/get-results?ids=${lookupIds.join(',')}`);
+        if (!resp.ok) return;
+        const results: CallResult[] = await resp.json();
+        if (!results.length) return;
+
+        const resultMap = new Map<string, CallResult>();
+        for (const r of results) {
+          if (r.contactId) resultMap.set(r.contactId, r);
+          if (r.phone) resultMap.set(r.phone.replace(/\D/g, ''), r);
+        }
+
+        setCampaign(prev => {
+          if (!prev) return prev;
+          let changed = false;
+          const contacts = prev.contacts.map(c => {
+            if (c.status !== 'calling') return c;
+            const result = resultMap.get(c.id) || resultMap.get(c.phone.replace(/\D/g, ''));
+            if (!result) return c;
+            changed = true;
+            return {
+              ...c,
+              status: 'completed' as CallStatus,
+              leadStatus: normalizeLeadStatus(result.leadStatus as string) || c.leadStatus,
+              transcript: result.transcript ?? c.transcript,
+              recordingUrl: result.recordingUrl ?? c.recordingUrl,
+              callDuration: result.duration ?? c.callDuration,
+              calledAt: c.calledAt || result.receivedAt,
+            };
+          });
+          if (!changed) return prev;
+          const allResolved = contacts.every(c => c.status !== 'pending' && c.status !== 'calling');
+          const updated = { ...prev, contacts, status: allResolved ? 'completed' : prev.status };
+          saveCampaign(updated);
+          return updated;
+        });
+      } catch {
+        // silent polling failure
+      }
+    }, 5000);
+
+    return () => clearInterval(interval);
   }, [id]);
 
   const persist = useCallback((updated: Campaign) => {
@@ -199,13 +269,15 @@ export default function CampaignDetail() {
               company: contact.company ?? '',
               notes: contact.notes ?? '',
               lead_source: contact.leadSource ?? '',
+              contactId: contact.id,
+              campaignId: campaign.id,
               custom_field_1: contact.id,
               custom_field_2: campaign.id,
             },
           }),
         });
 
-        const newStatus: CallStatus = resp.ok ? 'completed' : 'failed';
+        const newStatus: CallStatus = resp.ok ? 'calling' : 'failed';
         const error = resp.ok ? undefined : `HTTP ${resp.status}`;
 
         setCampaign(prev => {
@@ -237,8 +309,15 @@ export default function CampaignDetail() {
 
     setCampaign(prev => {
       if (!prev) return prev;
-      const allDone = prev.contacts.every(c => c.status !== 'pending' && c.status !== 'calling');
-      const nextStatus: Campaign['status'] = abortRef.current ? 'paused' : allDone ? 'completed' : 'paused';
+      const hasCalling = prev.contacts.some(c => c.status === 'calling');
+      const allResolved = prev.contacts.every(c => c.status !== 'pending' && c.status !== 'calling');
+      const nextStatus: Campaign['status'] = abortRef.current
+        ? 'paused'
+        : allResolved
+          ? 'completed'
+          : hasCalling
+            ? 'running'
+            : 'paused';
       const updated = { ...prev, status: nextStatus };
       saveCampaign(updated);
       return updated;
@@ -400,7 +479,7 @@ export default function CampaignDetail() {
           <table style={{ width: '100%', borderCollapse: 'collapse' }}>
             <thead>
               <tr style={{ borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
-                {['Name', 'Phone', 'Company', 'Call Status', 'Lead', 'Called At', 'Actions'].map(h => (
+                {['Name', 'Phone', 'Company', 'Status', 'Lead', 'Time', ''].map(h => (
                   <th key={h} style={{ padding: '11px 16px', textAlign: 'left', fontSize: 11, fontWeight: 600, color: '#475569', textTransform: 'uppercase', letterSpacing: '0.06em' }}>{h}</th>
                 ))}
               </tr>
@@ -408,54 +487,110 @@ export default function CampaignDetail() {
             <tbody>
               {campaign.contacts.map((contact, i) => {
                 const cfg = STATUS_CONFIG[contact.status];
+                const isExpanded = expandedId === contact.id;
+                const hasDetails = !!(contact.transcript || contact.recordingUrl || contact.callDuration);
                 return (
-                  <tr key={contact.id} style={{ borderBottom: i < campaign.contacts.length - 1 ? '1px solid rgba(255,255,255,0.04)' : 'none', background: contact.status === 'calling' ? 'rgba(245,158,11,0.04)' : 'transparent' }}>
-                    <td style={{ padding: '11px 16px', fontSize: 13, fontWeight: 500, color: '#e2e8f0' }}>
-                      {contact.name}
-                      {contact.error && <div style={{ fontSize: 11, color: '#f87171', marginTop: 2 }}>{contact.error}</div>}
-                    </td>
-                    <td style={{ padding: '11px 16px', fontSize: 13, color: '#94a3b8', fontFamily: 'monospace' }}>{contact.phone}</td>
-                    <td style={{ padding: '11px 16px', fontSize: 13, color: '#64748b' }}>{contact.company || '—'}</td>
-                    <td style={{ padding: '11px 16px' }}>
-                      <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 11, fontWeight: 600, padding: '3px 8px', borderRadius: 5, background: `${cfg.color}18`, color: cfg.color }}>
-                        {cfg.icon} {cfg.label}
-                      </span>
-                    </td>
-                    <td style={{ padding: '11px 12px' }}>
-                      {contact.status === 'completed' || contact.leadStatus ? (
-                        <select
-                          value={contact.leadStatus ?? ''}
-                          onChange={e => setLeadStatus(contact.id, e.target.value as LeadStatus)}
-                          style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 6, padding: '4px 8px', fontSize: 11, fontWeight: 600, color: LEAD_STATUS_OPTIONS.find(o => o.value === contact.leadStatus)?.color ?? '#64748b', cursor: 'pointer', outline: 'none' }}
-                        >
-                          <option value="" style={{ background: '#0d0d14', color: '#64748b' }}>— Qualify —</option>
-                          {LEAD_STATUS_OPTIONS.map(o => (
-                            <option key={o.value} value={o.value} style={{ background: '#0d0d14', color: o.color }}>{o.label}</option>
-                          ))}
-                        </select>
-                      ) : <span style={{ color: '#334155', fontSize: 12 }}>—</span>}
-                    </td>
-                    <td style={{ padding: '11px 16px', fontSize: 12, color: '#475569' }}>
-                      {contact.calledAt ? new Date(contact.calledAt).toLocaleTimeString() : '—'}
-                    </td>
-                    <td style={{ padding: '11px 16px' }}>
-                      <div style={{ display: 'flex', gap: 6 }}>
-                        {contact.status === 'failed' && (
-                          <button onClick={() => retryContact(contact.id)} title="Retry" style={{ width: 28, height: 28, background: 'rgba(245,158,11,0.1)', border: '1px solid rgba(245,158,11,0.25)', borderRadius: 6, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: '#fbbf24' }}>
-                            <RotateCcw size={12} />
+                  <Fragment key={contact.id}>
+                    <tr style={{ borderBottom: isExpanded ? 'none' : i < campaign.contacts.length - 1 ? '1px solid rgba(255,255,255,0.04)' : 'none', background: contact.status === 'calling' ? 'rgba(245,158,11,0.04)' : 'transparent' }}>
+                      <td style={{ padding: '11px 16px', fontSize: 13, fontWeight: 500, color: '#e2e8f0' }}>
+                        {contact.name}
+                        {contact.error && <div style={{ fontSize: 11, color: '#f87171', marginTop: 2 }}>{contact.error}</div>}
+                      </td>
+                      <td style={{ padding: '11px 16px', fontSize: 13, color: '#94a3b8', fontFamily: 'monospace' }}>{contact.phone}</td>
+                      <td style={{ padding: '11px 16px', fontSize: 13, color: '#64748b' }}>{contact.company || '—'}</td>
+                      <td style={{ padding: '11px 16px' }}>
+                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 11, fontWeight: 600, padding: '3px 8px', borderRadius: 5, background: `${cfg.color}18`, color: cfg.color }}>
+                          {cfg.icon} {cfg.label}
+                        </span>
+                      </td>
+                      <td style={{ padding: '11px 12px' }}>
+                        {contact.status === 'completed' || contact.leadStatus ? (
+                          <select
+                            value={contact.leadStatus ?? ''}
+                            onChange={e => setLeadStatus(contact.id, e.target.value as LeadStatus)}
+                            style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 6, padding: '4px 8px', fontSize: 11, fontWeight: 600, color: LEAD_STATUS_OPTIONS.find(o => o.value === contact.leadStatus)?.color ?? '#64748b', cursor: 'pointer', outline: 'none' }}
+                          >
+                            <option value="" style={{ background: '#0d0d14', color: '#64748b' }}>— Qualify —</option>
+                            {LEAD_STATUS_OPTIONS.map(o => (
+                              <option key={o.value} value={o.value} style={{ background: '#0d0d14', color: o.color }}>{o.label}</option>
+                            ))}
+                          </select>
+                        ) : <span style={{ color: '#334155', fontSize: 12 }}>—</span>}
+                      </td>
+                      <td style={{ padding: '11px 16px', fontSize: 12, color: '#475569' }}>
+                        {contact.calledAt ? (
+                          <div>
+                            <div>{new Date(contact.calledAt).toLocaleTimeString()}</div>
+                            {contact.callDuration != null && (
+                              <div style={{ fontSize: 11, color: '#64748b', marginTop: 1 }}>
+                                {Math.floor(contact.callDuration / 60)}:{String(contact.callDuration % 60).padStart(2, '0')}
+                              </div>
+                            )}
+                          </div>
+                        ) : contact.status === 'calling' ? (
+                          <span style={{ color: '#f59e0b', fontSize: 11 }}>In progress...</span>
+                        ) : '—'}
+                      </td>
+                      <td style={{ padding: '11px 16px' }}>
+                        <div style={{ display: 'flex', gap: 6 }}>
+                          {hasDetails && (
+                            <button onClick={() => setExpandedId(isExpanded ? null : contact.id)} title={isExpanded ? 'Collapse' : 'View Details'} style={{ width: 28, height: 28, background: isExpanded ? 'rgba(59,130,246,0.15)' : 'rgba(59,130,246,0.08)', border: `1px solid ${isExpanded ? 'rgba(59,130,246,0.3)' : 'rgba(59,130,246,0.15)'}`, borderRadius: 6, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: '#60a5fa' }}>
+                              {isExpanded ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
+                            </button>
+                          )}
+                          {contact.status === 'failed' && (
+                            <button onClick={() => retryContact(contact.id)} title="Retry" style={{ width: 28, height: 28, background: 'rgba(245,158,11,0.1)', border: '1px solid rgba(245,158,11,0.25)', borderRadius: 6, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: '#fbbf24' }}>
+                              <RotateCcw size={12} />
+                            </button>
+                          )}
+                          {contact.status !== 'dnc' && (
+                            <button onClick={() => markDNC(contact.id)} title="Mark DNC" style={{ width: 28, height: 28, background: 'rgba(139,92,246,0.1)', border: '1px solid rgba(139,92,246,0.2)', borderRadius: 6, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: '#a78bfa' }}>
+                              <Ban size={12} />
+                            </button>
+                          )}
+                          <button onClick={() => removeContact(contact.id)} title="Remove" style={{ width: 28, height: 28, background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.2)', borderRadius: 6, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: '#f87171' }}>
+                            <Trash2 size={12} />
                           </button>
-                        )}
-                        {contact.status !== 'dnc' && (
-                          <button onClick={() => markDNC(contact.id)} title="Mark DNC" style={{ width: 28, height: 28, background: 'rgba(139,92,246,0.1)', border: '1px solid rgba(139,92,246,0.2)', borderRadius: 6, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: '#a78bfa' }}>
-                            <Ban size={12} />
-                          </button>
-                        )}
-                        <button onClick={() => removeContact(contact.id)} title="Remove" style={{ width: 28, height: 28, background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.2)', borderRadius: 6, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: '#f87171' }}>
-                          <Trash2 size={12} />
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
+                        </div>
+                      </td>
+                    </tr>
+                    {isExpanded && (
+                      <tr>
+                        <td colSpan={7} style={{ padding: 0, borderBottom: i < campaign.contacts.length - 1 ? '1px solid rgba(255,255,255,0.04)' : 'none' }}>
+                          <div style={{ padding: '14px 20px', background: 'rgba(59,130,246,0.02)', borderTop: '1px solid rgba(59,130,246,0.08)' }}>
+                            <div style={{ display: 'grid', gridTemplateColumns: contact.recordingUrl ? '1fr 1fr' : '1fr', gap: 16 }}>
+                              {contact.transcript && (
+                                <div>
+                                  <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 8 }}>
+                                    <FileText size={13} color="#60a5fa" />
+                                    <span style={{ fontSize: 11, fontWeight: 600, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Transcript</span>
+                                  </div>
+                                  <div style={{ fontSize: 12, color: '#94a3b8', lineHeight: 1.7, maxHeight: 200, overflowY: 'auto', background: 'rgba(0,0,0,0.2)', borderRadius: 8, padding: 12, border: '1px solid rgba(255,255,255,0.04)' }}>
+                                    {contact.transcript}
+                                  </div>
+                                </div>
+                              )}
+                              {contact.recordingUrl && (
+                                <div>
+                                  <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 8 }}>
+                                    <Headphones size={13} color="#a78bfa" />
+                                    <span style={{ fontSize: 11, fontWeight: 600, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Recording</span>
+                                  </div>
+                                  <audio controls src={contact.recordingUrl} style={{ width: '100%', height: 36 }} />
+                                </div>
+                              )}
+                            </div>
+                            {!contact.transcript && !contact.recordingUrl && contact.callDuration != null && (
+                              <div style={{ display: 'flex', alignItems: 'center', gap: 6, color: '#64748b', fontSize: 12 }}>
+                                <Timer size={13} />
+                                <span>Call duration: {Math.floor(contact.callDuration / 60)}:{String(contact.callDuration % 60).padStart(2, '0')}</span>
+                              </div>
+                            )}
+                          </div>
+                        </td>
+                      </tr>
+                    )}
+                  </Fragment>
                 );
               })}
             </tbody>
