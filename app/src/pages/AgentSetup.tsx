@@ -135,7 +135,7 @@ const BASIC_SETTINGS = [
 const AI_MODEL_SETTINGS = [
   { label: 'LLM Provider', value: 'openai', note: 'Best balance of quality and speed for voice AI conversations.' },
   { label: 'LLM Model', value: 'gpt-4.1-mini', note: 'Fast, cost-effective, and smart enough for professional cold calls.' },
-  { label: 'Temperature', value: '0.2', note: 'Low temperature = consistent, professional responses. Avoids hallucinating product details.' },
+  { label: 'Temperature', value: '0.02', note: 'Dialora-recommended minimum for consistent, professional responses. Avoids hallucinating product details.' },
   { label: 'Word Per Response', value: '80', note: 'Short, punchy replies. Cold calls need concise answers — NOT essays. Prospect attention span is short.' },
   { label: 'Response Speed', value: 'Faster', note: 'Minimizes awkward pauses. Makes conversation feel natural and fluid.' },
 ];
