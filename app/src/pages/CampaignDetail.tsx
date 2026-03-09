@@ -3,7 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import {
   ArrowLeft, Upload, UserPlus, Play, Pause, Square,
   RotateCcw, CheckCircle2, XCircle, Clock, PhoneCall,
-  Ban, Trash2, Building2, User, ChevronDown, ChevronUp,
+  Ban, Trash2, Building2, ChevronDown, ChevronUp,
   FileText, Headphones, Timer,
 } from 'lucide-react';
 import { getCampaignById, saveCampaign } from '../data/store';
@@ -363,8 +363,8 @@ export default function CampaignDetail() {
 
       <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 24 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-          <div style={{ width: 42, height: 42, background: campaign.type === 'b2b' ? 'rgba(59,130,246,0.15)' : 'rgba(20,184,166,0.15)', border: `1px solid ${campaign.type === 'b2b' ? 'rgba(59,130,246,0.3)' : 'rgba(20,184,166,0.3)'}`, borderRadius: 10, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            {campaign.type === 'b2b' ? <Building2 size={20} color="#60a5fa" /> : <User size={20} color="#2dd4bf" />}
+          <div style={{ width: 42, height: 42, background: 'rgba(59,130,246,0.15)', border: '1px solid rgba(59,130,246,0.3)', borderRadius: 10, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <Building2 size={20} color="#60a5fa" />
           </div>
           <div>
             <h1 style={{ margin: 0, fontSize: 22, fontWeight: 700, color: '#f8fafc' }}>{campaign.name}</h1>

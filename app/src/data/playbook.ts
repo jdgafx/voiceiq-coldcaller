@@ -87,29 +87,6 @@ export const b2bObjections = [
   },
 ];
 
-export const b2cObjections = [
-  {
-    question: '"I already have health insurance"',
-    answer: 'That\'s great — health insurance is essential. But here\'s the gap most people don\'t realize until they\'re in it: health insurance pays the hospital and the doctor. It doesn\'t replace your income if you can\'t work. It doesn\'t cover the rent when you\'re recovering. Combined Insurance pays cash directly to you for exactly those situations — on top of whatever your health plan already covers.',
-  },
-  {
-    question: '"I can\'t afford more insurance"',
-    answer: 'That\'s fair — and I won\'t pretend it\'s nothing. But let me ask: if you missed four weeks of work tomorrow because of an accident or illness, what would that cost you? For most people, that math is a lot scarier than a few dollars a week in premiums. Our specialist can walk you through actual numbers — no obligation to buy anything — and you can decide if it makes sense for your situation.',
-  },
-  {
-    question: '"I\'m healthy — I don\'t need it"',
-    answer: 'That\'s actually when it\'s the best time to get it — when you\'re healthy, coverage is less expensive and easier to qualify for. The point isn\'t that something will definitely happen. It\'s that if it does, you\'re not making financial decisions during the worst moment of your life. One in three Americans faces a cancer diagnosis. The ones who planned ahead are the ones who get to focus on recovery instead of bills.',
-  },
-  {
-    question: '"How did you get my number?"',
-    answer: 'Your information was provided through our opt-in outreach program. If you\'d prefer not to be contacted, I\'ll remove you from our list right now — absolutely no problem. Is that what you\'d like, or would you be open to a quick overview of what we offer?',
-  },
-  {
-    question: '"I need to talk to my spouse / partner first"',
-    answer: 'Of course — that makes complete sense. Would it be useful if I scheduled a 15-minute call with both of you? That way you can both hear the information at the same time and decide together. What works for your schedules this week?',
-  },
-];
-
 export const leadOutcomes = [
   {
     emoji: '🔥',

@@ -31,6 +31,9 @@ export const handler: Handler = async (event) => {
     return { statusCode: 400, headers: corsHeaders, body: 'contactId or phone required' };
   }
 
+  // Extract Dialora extracted data fields (from Extract Data JSON config)
+  const extractedData = (payload.extracted_data ?? payload.extractedData ?? {}) as Record<string, string>;
+
   const result = {
     contactId,
     campaignId,
@@ -39,9 +42,19 @@ export const handler: Handler = async (event) => {
     duration: (payload.duration ?? payload.call_duration ?? null) as number | null,
     recordingUrl: (payload.recording_url ?? payload.recordingUrl ?? null) as string | null,
     transcript: (payload.transcript ?? payload.transcription ?? null) as string | null,
-    leadStatus: (payload.lead_status ?? payload.outcome ?? payload.disposition ?? null) as string | null,
-    summary: (payload.summary ?? payload.call_summary ?? null) as string | null,
+    leadStatus: (payload.lead_status ?? payload.outcome ?? payload.disposition ?? extractedData.interest_level ?? null) as string | null,
+    summary: (payload.summary ?? payload.call_summary ?? extractedData.call_summary ?? null) as string | null,
     receivedAt: new Date().toISOString(),
+    // Extended fields from Dialora Extract Data
+    prospectName: (extractedData.customer_name ?? payload.name ?? '') as string,
+    companyName: (extractedData.company_name ?? payload.company ?? '') as string,
+    jobTitle: (extractedData.job_title ?? '') as string,
+    employeeCount: (extractedData.employee_count ?? '') as string,
+    email: (extractedData.email ?? payload.email ?? '') as string,
+    meetingDate: (extractedData.meeting_date ?? '') as string,
+    meetingDescription: (extractedData.meeting_day_description ?? '') as string,
+    objections: (extractedData.objections_raised ?? '') as string,
+    followUpAction: (extractedData.follow_up_action ?? '') as string,
   };
 
   try {
@@ -55,6 +68,33 @@ export const handler: Handler = async (event) => {
       const ids = Array.isArray(existing) ? existing : [];
       if (!ids.includes(key)) {
         await store.setJSON(indexKey, [...ids, key]);
+      }
+    }
+
+    // Auto-create Google Calendar meeting for HOT/WARM/CALLBACK leads with a meeting date
+    const leadUpper = (result.leadStatus || '').toUpperCase();
+    const shouldBook = ['HOT', 'WARM', 'CALLBACK'].includes(leadUpper) && result.meetingDate;
+
+    if (shouldBook) {
+      try {
+        // Determine host for internal function call
+        const host = event.headers?.host || 'voiceiq-coldcaller.netlify.app';
+        const proto = host.includes('localhost') ? 'http' : 'https';
+
+        await fetch(`${proto}://${host}/api/create-meeting`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            prospectName: result.prospectName || 'Prospect',
+            prospectEmail: result.email || undefined,
+            companyName: result.companyName || undefined,
+            meetingDate: result.meetingDate,
+            summary: result.summary || undefined,
+          }),
+        });
+        // Fire-and-forget — don't fail the call result if calendar creation fails
+      } catch {
+        // Calendar creation failed — not critical, call result is still stored
       }
     }
   } catch (err: unknown) {

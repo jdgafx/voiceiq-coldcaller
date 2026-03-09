@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Phone, Plus, Building2, User, Trash2, Play, ChevronRight } from 'lucide-react';
+import { Phone, Plus, Building2, Trash2, Play, ChevronRight } from 'lucide-react';
 import { getCampaigns, saveCampaign, deleteCampaign } from '../data/store';
 import { getSettings } from '../data/store';
 import type { Campaign } from '../types';
@@ -35,15 +35,15 @@ export default function Campaigns() {
 
   const [form, setForm] = useState({
     name: '',
-    type: 'b2b' as 'b2b' | 'b2c',
+    type: 'b2b' as const,
     webhookUrl: '',
-    timezone: settings.defaultTimezone || 'America/Chicago',
+    timezone: settings.defaultTimezone || 'America/New_York',
     delayBetweenCalls: settings.delayBetweenCalls || 5,
   });
 
   function createCampaign() {
     if (!form.name.trim()) return;
-    const webhook = form.webhookUrl || (form.type === 'b2b' ? settings.b2bWebhookUrl : settings.b2cWebhookUrl);
+    const webhook = form.webhookUrl || settings.b2bWebhookUrl;
     const campaign: Campaign = {
       id: crypto.randomUUID(),
       name: form.name.trim(),
@@ -59,7 +59,7 @@ export default function Campaigns() {
     saveCampaign(campaign);
     setCampaigns(getCampaigns());
     setShowModal(false);
-    setForm({ name: '', type: 'b2b', webhookUrl: '', timezone: settings.defaultTimezone || 'America/Chicago', delayBetweenCalls: settings.delayBetweenCalls || 5 });
+    setForm({ name: '', type: 'b2b', webhookUrl: '', timezone: settings.defaultTimezone || 'America/New_York', delayBetweenCalls: settings.delayBetweenCalls || 5 });
     navigate(`/campaigns/${campaign.id}`);
   }
 
@@ -132,14 +132,14 @@ export default function Campaigns() {
                 onMouseEnter={e => (e.currentTarget.style.borderColor = 'rgba(255,255,255,0.14)')}
                 onMouseLeave={e => (e.currentTarget.style.borderColor = 'rgba(255,255,255,0.06)')}
               >
-                <div style={{ width: 40, height: 40, background: c.type === 'b2b' ? 'rgba(59,130,246,0.12)' : 'rgba(20,184,166,0.12)', border: `1px solid ${c.type === 'b2b' ? 'rgba(59,130,246,0.25)' : 'rgba(20,184,166,0.25)'}`, borderRadius: 10, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                  {c.type === 'b2b' ? <Building2 size={18} color="#60a5fa" /> : <User size={18} color="#2dd4bf" />}
+                <div style={{ width: 40, height: 40, background: 'rgba(59,130,246,0.12)', border: '1px solid rgba(59,130,246,0.25)', borderRadius: 10, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                  <Building2 size={18} color="#60a5fa" />
                 </div>
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 6 }}>
                     <span style={{ fontSize: 15, fontWeight: 600, color: '#f1f5f9', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{c.name}</span>
                     <span style={{ fontSize: 10, fontWeight: 700, padding: '2px 7px', borderRadius: 4, background: `${statusColor(c.status)}20`, color: statusColor(c.status), textTransform: 'uppercase', letterSpacing: '0.06em', flexShrink: 0 }}>{statusLabel(c.status)}</span>
-                    <span style={{ fontSize: 10, fontWeight: 700, padding: '2px 7px', borderRadius: 4, background: c.type === 'b2b' ? 'rgba(59,130,246,0.15)' : 'rgba(20,184,166,0.15)', color: c.type === 'b2b' ? '#60a5fa' : '#2dd4bf', textTransform: 'uppercase', flexShrink: 0 }}>{c.type.toUpperCase()}</span>
+                    <span style={{ fontSize: 10, fontWeight: 700, padding: '2px 7px', borderRadius: 4, background: 'rgba(59,130,246,0.15)', color: '#60a5fa', textTransform: 'uppercase', flexShrink: 0 }}>B2B</span>
                   </div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 16, fontSize: 12, color: '#64748b' }}>
                     <span>{total} contacts</span>
@@ -180,17 +180,9 @@ export default function Campaigns() {
 
             <div style={{ marginBottom: 16 }}>
               <label style={labelStyle}>Type</label>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
-                {(['b2b', 'b2c'] as const).map(t => (
-                  <button
-                    key={t}
-                    onClick={() => setForm(p => ({ ...p, type: t }))}
-                    style={{ padding: '12px', borderRadius: 8, border: `2px solid ${form.type === t ? (t === 'b2b' ? '#3b82f6' : '#14b8a6') : 'rgba(255,255,255,0.08)'}`, background: form.type === t ? (t === 'b2b' ? 'rgba(59,130,246,0.12)' : 'rgba(20,184,166,0.12)') : 'transparent', color: form.type === t ? (t === 'b2b' ? '#60a5fa' : '#2dd4bf') : '#64748b', fontSize: 14, fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}
-                  >
-                    {t === 'b2b' ? <Building2 size={16} /> : <User size={16} />}
-                    {t.toUpperCase()}
-                  </button>
-                ))}
+              <div style={{ padding: '12px', borderRadius: 8, border: '2px solid #3b82f6', background: 'rgba(59,130,246,0.12)', color: '#60a5fa', fontSize: 14, fontWeight: 600, display: 'flex', alignItems: 'center', gap: 8 }}>
+                <Building2 size={16} />
+                B2B — HR Directors, Benefits Managers, Business Owners
               </div>
             </div>
 

@@ -1,24 +1,17 @@
 import { useState } from 'react';
 import { Search, ChevronDown } from 'lucide-react';
-import { b2bObjections, b2cObjections } from '../data/playbook';
+import { b2bObjections } from '../data/playbook';
 import ScriptVar from '../components/ScriptVar';
-
-type Filter = 'all' | 'b2b' | 'b2c';
 
 export default function Objections() {
   const [search, setSearch] = useState('');
-  const [filter, setFilter] = useState<Filter>('all');
   const [expanded, setExpanded] = useState<string | null>(null);
 
-  const allObjections = [
-    ...b2bObjections.map(o => ({ ...o, type: 'b2b' as const })),
-    ...b2cObjections.map(o => ({ ...o, type: 'b2c' as const })),
-  ];
+  const allObjections = b2bObjections.map(o => ({ ...o, type: 'b2b' as const }));
 
   const filtered = allObjections.filter(o => {
-    const matchesFilter = filter === 'all' || o.type === filter;
     const matchesSearch = search === '' || o.question.toLowerCase().includes(search.toLowerCase()) || o.answer.toLowerCase().includes(search.toLowerCase());
-    return matchesFilter && matchesSearch;
+    return matchesSearch;
   });
 
   const toggleExpanded = (key: string) => setExpanded(expanded === key ? null : key);
@@ -40,16 +33,8 @@ export default function Objections() {
             style={{ width: '100%', background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 8, padding: '10px 12px 10px 36px', fontSize: 14, color: '#f8fafc', outline: 'none', boxSizing: 'border-box' }}
           />
         </div>
-        <div style={{ display: 'flex', background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 8, overflow: 'hidden' }}>
-          {(['all', 'b2b', 'b2c'] as Filter[]).map(f => (
-            <button
-              key={f}
-              onClick={() => setFilter(f)}
-              style={{ padding: '10px 16px', background: filter === f ? 'rgba(59,130,246,0.2)' : 'none', border: 'none', color: filter === f ? '#60a5fa' : '#64748b', fontSize: 13, fontWeight: filter === f ? 600 : 400, cursor: 'pointer', textTransform: 'uppercase', letterSpacing: '0.05em' }}
-            >
-              {f === 'all' ? 'All' : f.toUpperCase()}
-            </button>
-          ))}
+        <div style={{ display: 'flex', alignItems: 'center', padding: '10px 16px', background: 'rgba(59,130,246,0.1)', border: '1px solid rgba(59,130,246,0.2)', borderRadius: 8 }}>
+          <span style={{ fontSize: 12, fontWeight: 700, color: '#60a5fa', textTransform: 'uppercase', letterSpacing: '0.05em' }}>B2B</span>
         </div>
       </div>
 

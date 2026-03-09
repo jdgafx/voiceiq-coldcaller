@@ -3,7 +3,7 @@ import { NavLink, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Zap, LayoutDashboard, Bot, Phone, TrendingUp,
-  Building2, User, MessageSquareWarning, Package, Target, ShieldCheck,
+  Building2, MessageSquareWarning, Package, Target, ShieldCheck,
   Settings, BookOpen, ChevronRight, ChevronDown,
 } from 'lucide-react';
 
@@ -23,14 +23,13 @@ const primaryItems: NavItem[] = [
 
 const playbookItems: NavItem[] = [
   { to: '/b2b', icon: Building2, label: 'B2B Script' },
-  { to: '/b2c', icon: User, label: 'B2C Script' },
   { to: '/objections', icon: MessageSquareWarning, label: 'Objections' },
   { to: '/products', icon: Package, label: 'Products' },
   { to: '/leads', icon: Target, label: 'Lead Outcomes' },
   { to: '/compliance', icon: ShieldCheck, label: 'Compliance' },
 ];
 
-const PLAYBOOK_ROUTES = ['/b2b', '/b2c', '/objections', '/products', '/leads', '/compliance'];
+const PLAYBOOK_ROUTES = ['/b2b', '/objections', '/products', '/leads', '/compliance'];
 
 const primaryLinkStyle = ({ isActive }: { isActive: boolean }): React.CSSProperties => ({
   display: 'flex',

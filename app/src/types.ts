@@ -23,7 +23,7 @@ export interface Contact {
 export interface Campaign {
   id: string;
   name: string;
-  type: 'b2b' | 'b2c';
+  type: 'b2b';
   webhookUrl: string;
   contacts: Contact[];
   status: 'draft' | 'running' | 'paused' | 'completed';
@@ -35,10 +35,14 @@ export interface Campaign {
 
 export interface AppSettings {
   b2bWebhookUrl: string;
-  b2cWebhookUrl: string;
   defaultTimezone: string;
   delayBetweenCalls: number;
   callResultWebhookSecret?: string;
+  notificationEmail: string;
+  calendarEmail: string;
+  googleCalendarConnected?: boolean;
+  googleClientId?: string;
+  googleClientSecret?: string;
 }
 
 export interface CallResult {

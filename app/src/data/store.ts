@@ -33,23 +33,20 @@ export function getCampaignById(id: string): Campaign | undefined {
 }
 
 export function getSettings(): AppSettings {
+  const defaults: AppSettings = {
+    b2bWebhookUrl: '',
+    defaultTimezone: 'America/New_York',
+    delayBetweenCalls: 5,
+    notificationEmail: 'michael@primemarketingexperts.com',
+    calendarEmail: 'michael@primemarketingexperts.com',
+  };
   try {
     const raw = localStorage.getItem(SETTINGS_KEY);
-    if (raw) return JSON.parse(raw);
+    if (raw) return { ...defaults, ...JSON.parse(raw) };
   } catch (_) {
-    return {
-      b2bWebhookUrl: '',
-      b2cWebhookUrl: '',
-      defaultTimezone: 'America/Chicago',
-      delayBetweenCalls: 5,
-    };
+    return defaults;
   }
-  return {
-    b2bWebhookUrl: '',
-    b2cWebhookUrl: '',
-    defaultTimezone: 'America/Chicago',
-    delayBetweenCalls: 5,
-  };
+  return defaults;
 }
 
 export function saveSettings(settings: AppSettings): void {

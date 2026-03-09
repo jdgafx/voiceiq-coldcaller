@@ -16,7 +16,7 @@ const COLUMNS: { status: LeadStatus | 'unqualified'; label: string; color: strin
 interface EnrichedContact extends Contact {
   campaignId: string;
   campaignName: string;
-  campaignType: 'b2b' | 'b2c';
+  campaignType: 'b2b';
 }
 
 function allContacts(): EnrichedContact[] {
@@ -63,8 +63,8 @@ function ContactCard({ contact, onStatusChange }: { contact: EnrichedContact; on
           <div style={{ fontSize: 13, fontWeight: 700, color: '#f1f5f9', marginBottom: 2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{contact.name}</div>
           {contact.company && <div style={{ fontSize: 11, color: '#64748b', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{contact.company}</div>}
         </div>
-        <span style={{ fontSize: 9, fontWeight: 700, padding: '2px 6px', borderRadius: 3, background: contact.campaignType === 'b2b' ? 'rgba(59,130,246,0.15)' : 'rgba(20,184,166,0.15)', color: contact.campaignType === 'b2b' ? '#60a5fa' : '#2dd4bf', flexShrink: 0, marginLeft: 6, textTransform: 'uppercase' }}>
-          {contact.campaignType}
+        <span style={{ fontSize: 9, fontWeight: 700, padding: '2px 6px', borderRadius: 3, background: 'rgba(59,130,246,0.15)', color: '#60a5fa', flexShrink: 0, marginLeft: 6, textTransform: 'uppercase' }}>
+          B2B
         </span>
       </div>
 

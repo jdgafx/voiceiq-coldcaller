@@ -196,32 +196,33 @@ export default function Dashboard() {
             )}
           </div>
 
+          {/* Calendar integration status */}
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 0' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
               <div style={{
                 width: 8, height: 8, borderRadius: '50%',
-                background: settings.b2cWebhookUrl ? '#22c55e' : '#ef4444',
-                boxShadow: settings.b2cWebhookUrl ? '0 0 8px #22c55e88' : '0 0 8px #ef444488',
+                background: settings.googleCalendarConnected ? '#22c55e' : '#f59e0b',
+                boxShadow: settings.googleCalendarConnected ? '0 0 8px #22c55e88' : '0 0 8px #f59e0b88',
               }} />
               <div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, color: '#e2e8f0', fontWeight: 500 }}>
-                  B2C Agent
-                  {settings.b2cWebhookUrl
+                  Google Calendar
+                  {settings.googleCalendarConnected
                     ? <CheckCircle2 size={12} color="#22c55e" />
-                    : <AlertCircle size={12} color="#ef4444" />
+                    : <AlertCircle size={12} color="#f59e0b" />
                   }
                 </div>
-                <div style={{ fontSize: 11, color: settings.b2cWebhookUrl ? '#22c55e' : '#ef4444', marginTop: 2 }}>
-                  {settings.b2cWebhookUrl ? 'Connected' : 'Not configured'}
+                <div style={{ fontSize: 11, color: settings.googleCalendarConnected ? '#22c55e' : '#f59e0b', marginTop: 2 }}>
+                  {settings.googleCalendarConnected ? 'Connected' : 'Not connected'}
                 </div>
               </div>
             </div>
-            {!settings.b2cWebhookUrl && (
+            {!settings.googleCalendarConnected && (
               <button
-                onClick={() => navigate('/agent-setup')}
+                onClick={() => navigate('/settings')}
                 style={{ fontSize: 11, color: '#60a5fa', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
               >
-                Set up →
+                Connect →
               </button>
             )}
           </div>
