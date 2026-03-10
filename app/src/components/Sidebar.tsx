@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
-  Zap, LayoutDashboard, Bot, Phone, TrendingUp,
+  LayoutDashboard, Bot, Phone, TrendingUp,
   Building2, MessageSquareWarning, Package, Target, ShieldCheck,
   Settings, BookOpen, ChevronRight, ChevronDown,
 } from 'lucide-react';
@@ -100,17 +100,34 @@ export default function Sidebar() {
       >
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 6 }}>
           <div style={{
-            width: 32,
-            height: 32,
-            background: 'linear-gradient(135deg, #3b82f6, #14b8a6)',
-            borderRadius: 8,
+            width: 36,
+            height: 36,
+            borderRadius: 10,
+            background: 'linear-gradient(145deg, #162d50, #0b1a30)',
+            boxShadow: '0 2px 12px rgba(59,130,246,0.15), inset 0 1px 0 rgba(255,255,255,0.06)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
+            flexShrink: 0,
           }}>
-            <Zap size={18} color="#fff" fill="#fff" />
+            <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+              <defs>
+                <linearGradient id="viq-g" x1="10" y1="2" x2="10" y2="18" gradientUnits="userSpaceOnUse">
+                  <stop stopColor="#60a5fa" />
+                  <stop offset="1" stopColor="#2dd4bf" />
+                </linearGradient>
+              </defs>
+              <rect x="1.5" y="5.5" width="2.4" height="9" rx="1.2" fill="url(#viq-g)" opacity="0.85" />
+              <rect x="5.3" y="2.5" width="2.4" height="15" rx="1.2" fill="url(#viq-g)" />
+              <rect x="8.8" y="7" width="2.4" height="6" rx="1.2" fill="url(#viq-g)" opacity="0.65" />
+              <rect x="12.3" y="2.5" width="2.4" height="15" rx="1.2" fill="url(#viq-g)" />
+              <rect x="16.1" y="5.5" width="2.4" height="9" rx="1.2" fill="url(#viq-g)" opacity="0.85" />
+            </svg>
           </div>
-          <span style={{ fontSize: 20, fontWeight: 800, color: '#f8fafc', letterSpacing: '-0.5px' }}>VoiceIQ</span>
+          <div style={{ display: 'flex', alignItems: 'baseline' }}>
+            <span style={{ fontSize: 19, fontWeight: 300, color: '#e2e8f0', letterSpacing: '-0.3px' }}>Voice</span>
+            <span style={{ fontSize: 19, fontWeight: 800, color: '#60a5fa', letterSpacing: '-0.3px' }}>IQ</span>
+          </div>
         </div>
         <p style={{ margin: 0, fontSize: 10, color: '#64748b', lineHeight: 1.4, paddingLeft: 42 }}>
           Combined Insurance • Chubb<br />Cold Call Playbook
