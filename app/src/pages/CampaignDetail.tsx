@@ -4,9 +4,9 @@ import {
   ArrowLeft, Upload, UserPlus, Play, Pause, Square,
   RotateCcw, CheckCircle2, XCircle, Clock, PhoneCall,
   Ban, Trash2, Building2, ChevronDown, ChevronUp,
-  FileText, Headphones, Timer, Download,
+  FileText, Headphones, Timer, Download, Search, Loader2, X,
 } from 'lucide-react';
-import { getCampaignById, saveCampaign } from '../data/store';
+import { getCampaignById, saveCampaign, getSettings } from '../data/store';
 import type { Campaign, Contact, LeadStatus, CallResult } from '../types';
 
 const LEAD_STATUS_OPTIONS: { value: LeadStatus; label: string; color: string }[] = [
@@ -80,12 +80,195 @@ function normalizeLeadStatus(raw?: string | null): LeadStatus | undefined {
   return map[lower];
 }
 
+interface HarmonicLead {
+  name: string;
+  company: string;
+  title: string;
+  email: string;
+  phone: string;
+  linkedin: string;
+  location: string;
+}
+
+function LeadFinderModal({ onClose, onImport }: { onClose: () => void; onImport: (contacts: Partial<Contact>[]) => void }) {
+  const [query, setQuery] = useState('HR Director supplemental benefits');
+  const [limit, setLimit] = useState(25);
+  const [results, setResults] = useState<HarmonicLead[]>([]);
+  const [selected, setSelected] = useState<Set<number>>(new Set());
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+
+  const settings = getSettings();
+  const hasKey = !!(settings.harmonicApiKey);
+
+  async function handleSearch() {
+    if (!query.trim()) return;
+    setLoading(true);
+    setError('');
+    setResults([]);
+    setSelected(new Set());
+    try {
+      const resp = await fetch('/api/search-leads', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ query, limit, apiKey: settings.harmonicApiKey }),
+      });
+      const data = await resp.json();
+      if (!resp.ok) {
+        setError(data.error || `HTTP ${resp.status}`);
+      } else {
+        setResults(data.contacts || []);
+        if (data.contacts?.length === 0) setError('No results found. Try a different search query.');
+      }
+    } catch {
+      setError('Network error — could not reach the server.');
+    }
+    setLoading(false);
+  }
+
+  function toggleSelect(i: number) {
+    setSelected(prev => {
+      const next = new Set(prev);
+      next.has(i) ? next.delete(i) : next.add(i);
+      return next;
+    });
+  }
+
+  function selectAll() {
+    if (selected.size === results.length) {
+      setSelected(new Set());
+    } else {
+      setSelected(new Set(results.map((_, i) => i)));
+    }
+  }
+
+  function handleImport() {
+    const leads = results.filter((_, i) => selected.has(i));
+    onImport(leads.map(l => ({
+      name: l.name,
+      phone: l.phone,
+      email: l.email,
+      company: l.company,
+      notes: [l.title, l.location].filter(Boolean).join(' — '),
+      leadSource: 'Harmonic.ai',
+    })));
+    onClose();
+  }
+
+  return (
+    <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: 20 }}>
+      <div style={{ background: '#0a0a12', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 16, width: '100%', maxWidth: 820, maxHeight: '85vh', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+        {/* Header */}
+        <div style={{ padding: '18px 22px', borderBottom: '1px solid rgba(255,255,255,0.06)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <div>
+            <h2 style={{ margin: 0, fontSize: 18, fontWeight: 700, color: '#f8fafc' }}>Find B2B Leads</h2>
+            <p style={{ margin: '4px 0 0', fontSize: 12, color: '#64748b' }}>Search Harmonic.ai for HR directors, benefits managers, and business owners</p>
+          </div>
+          <button onClick={onClose} style={{ background: 'none', border: 'none', color: '#64748b', cursor: 'pointer', padding: 4 }}><X size={18} /></button>
+        </div>
+
+        {/* Search bar */}
+        <div style={{ padding: '14px 22px', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+          {!hasKey && (
+            <div style={{ padding: '10px 14px', background: 'rgba(245,158,11,0.08)', border: '1px solid rgba(245,158,11,0.2)', borderRadius: 8, marginBottom: 12, fontSize: 12, color: '#fbbf24', lineHeight: 1.5 }}>
+              Harmonic API key not set. Go to <strong>Settings</strong> (left sidebar) and add your key in the Harmonic section.
+            </div>
+          )}
+          <div style={{ display: 'flex', gap: 10 }}>
+            <div style={{ flex: 1, position: 'relative' }}>
+              <Search size={14} color="#475569" style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)' }} />
+              <input
+                value={query}
+                onChange={e => setQuery(e.target.value)}
+                onKeyDown={e => e.key === 'Enter' && handleSearch()}
+                placeholder="e.g. HR Director employee benefits Texas"
+                style={{ width: '100%', boxSizing: 'border-box', padding: '10px 12px 10px 34px', background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 8, color: '#f1f5f9', fontSize: 13, outline: 'none' }}
+              />
+            </div>
+            <select
+              value={limit}
+              onChange={e => setLimit(Number(e.target.value))}
+              style={{ padding: '10px 12px', background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 8, color: '#f1f5f9', fontSize: 12, cursor: 'pointer', outline: 'none' }}
+            >
+              {[10, 25, 50].map(n => <option key={n} value={n} style={{ background: '#0a0a12' }}>{n} results</option>)}
+            </select>
+            <button
+              onClick={handleSearch}
+              disabled={loading || !query.trim() || !hasKey}
+              style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '10px 18px', background: 'linear-gradient(135deg, #3b82f6, #14b8a6)', border: 'none', borderRadius: 8, color: '#fff', fontSize: 13, fontWeight: 600, cursor: loading || !hasKey ? 'not-allowed' : 'pointer', opacity: loading || !hasKey ? 0.5 : 1, whiteSpace: 'nowrap' }}
+            >
+              {loading ? <Loader2 size={14} style={{ animation: 'spin 1s linear infinite' }} /> : <Search size={14} />}
+              Search
+            </button>
+          </div>
+        </div>
+
+        {/* Results */}
+        <div style={{ flex: 1, overflowY: 'auto', padding: '0 22px' }}>
+          {error && (
+            <div style={{ margin: '16px 0', padding: '12px 16px', background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.2)', borderRadius: 8, fontSize: 12, color: '#f87171' }}>{error}</div>
+          )}
+          {results.length > 0 && (
+            <table style={{ width: '100%', borderCollapse: 'collapse', marginTop: 8 }}>
+              <thead>
+                <tr style={{ borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+                  <th style={{ padding: '8px 6px', textAlign: 'left', width: 30 }}>
+                    <input type="checkbox" checked={selected.size === results.length} onChange={selectAll} style={{ cursor: 'pointer' }} />
+                  </th>
+                  {['Name', 'Company', 'Title', 'Phone', 'Email'].map(h => (
+                    <th key={h} style={{ padding: '8px 8px', textAlign: 'left', fontSize: 10, fontWeight: 600, color: '#475569', textTransform: 'uppercase', letterSpacing: '0.06em' }}>{h}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {results.map((lead, i) => (
+                  <tr key={i} onClick={() => toggleSelect(i)} style={{ borderBottom: '1px solid rgba(255,255,255,0.03)', cursor: 'pointer', background: selected.has(i) ? 'rgba(59,130,246,0.06)' : 'transparent' }}>
+                    <td style={{ padding: '8px 6px' }}>
+                      <input type="checkbox" checked={selected.has(i)} readOnly style={{ cursor: 'pointer' }} />
+                    </td>
+                    <td style={{ padding: '8px 8px', fontSize: 12, fontWeight: 500, color: '#e2e8f0' }}>{lead.name || '—'}</td>
+                    <td style={{ padding: '8px 8px', fontSize: 12, color: '#94a3b8' }}>{lead.company || '—'}</td>
+                    <td style={{ padding: '8px 8px', fontSize: 11, color: '#64748b' }}>{lead.title || '—'}</td>
+                    <td style={{ padding: '8px 8px', fontSize: 11, color: '#94a3b8', fontFamily: 'monospace' }}>{lead.phone || '—'}</td>
+                    <td style={{ padding: '8px 8px', fontSize: 11, color: '#64748b', maxWidth: 160, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{lead.email || '—'}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
+          {!loading && results.length === 0 && !error && (
+            <div style={{ textAlign: 'center', padding: '40px 0', color: '#334155' }}>
+              <Search size={32} style={{ opacity: 0.2, marginBottom: 10 }} />
+              <p style={{ fontSize: 13, margin: 0 }}>Search for leads to get started</p>
+            </div>
+          )}
+        </div>
+
+        {/* Footer */}
+        {results.length > 0 && (
+          <div style={{ padding: '14px 22px', borderTop: '1px solid rgba(255,255,255,0.06)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <span style={{ fontSize: 12, color: '#64748b' }}>{selected.size} of {results.length} selected</span>
+            <button
+              onClick={handleImport}
+              disabled={selected.size === 0}
+              style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '10px 20px', background: selected.size > 0 ? 'linear-gradient(135deg, #10b981, #059669)' : 'rgba(255,255,255,0.05)', border: 'none', borderRadius: 8, color: selected.size > 0 ? '#fff' : '#475569', fontSize: 13, fontWeight: 600, cursor: selected.size > 0 ? 'pointer' : 'not-allowed' }}
+            >
+              Import {selected.size} Lead{selected.size !== 1 ? 's' : ''} to Campaign
+            </button>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
 export default function CampaignDetail() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const [campaign, setCampaign] = useState<Campaign | null>(null);
   const [showAddForm, setShowAddForm] = useState(false);
   const [isDragOver, setIsDragOver] = useState(false);
+  const [showLeadFinder, setShowLeadFinder] = useState(false);
   const abortRef = useRef(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -446,6 +629,12 @@ export default function CampaignDetail() {
           <Download size={14} /> Template
         </button>
         <button
+          onClick={() => setShowLeadFinder(true)}
+          style={{ display: 'flex', alignItems: 'center', gap: 7, padding: '0 16px', background: 'rgba(139,92,246,0.1)', border: '1px solid rgba(139,92,246,0.25)', borderRadius: 10, color: '#a78bfa', fontSize: 12, fontWeight: 600, cursor: 'pointer', whiteSpace: 'nowrap' }}
+        >
+          <Search size={14} /> Find Leads
+        </button>
+        <button
           onClick={() => setShowAddForm(p => !p)}
           style={{ display: 'flex', alignItems: 'center', gap: 7, padding: '0 18px', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 10, color: '#94a3b8', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}
         >
@@ -611,6 +800,26 @@ export default function CampaignDetail() {
             </tbody>
           </table>
         </div>
+      )}
+
+      {showLeadFinder && (
+        <LeadFinderModal
+          onClose={() => setShowLeadFinder(false)}
+          onImport={(leads) => {
+            if (!campaign) return;
+            const newContacts: Contact[] = leads.map(l => ({
+              id: crypto.randomUUID(),
+              name: l.name ?? '',
+              phone: l.phone ?? '',
+              email: l.email,
+              company: l.company,
+              notes: l.notes,
+              leadSource: l.leadSource,
+              status: 'pending',
+            }));
+            persist({ ...campaign, contacts: [...campaign.contacts, ...newContacts] });
+          }}
+        />
       )}
     </div>
   );

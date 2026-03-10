@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { Settings2, CheckCircle2, AlertCircle, Loader2, Mail, Calendar, ExternalLink } from 'lucide-react';
+import { Settings2, CheckCircle2, AlertCircle, Loader2, Mail, Calendar, ExternalLink, Database } from 'lucide-react';
 import { getSettings, saveSettings } from '../data/store';
 import type { AppSettings } from '../types';
 
@@ -288,6 +288,28 @@ export default function Settings() {
               Test
             </button>
           </div>
+        </div>
+      </div>
+
+      {/* ─── HARMONIC LEAD FINDER ──────────────────────────────────────── */}
+      <div style={card}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16 }}>
+          <Database size={18} color="#a78bfa" />
+          <h2 style={{ margin: 0, fontSize: 15, fontWeight: 700, color: '#e2e8f0' }}>Harmonic.ai — Lead Finder</h2>
+        </div>
+        <p style={{ margin: '0 0 16px', fontSize: 13, color: '#64748b', lineHeight: 1.5 }}>
+          Search 195M+ professional profiles to find HR directors, benefits managers, and business owners. Used by the "Find Leads" button on campaign pages.
+        </p>
+        <div>
+          <label style={labelStyle}>Harmonic API Key</label>
+          <input
+            style={{ ...inputStyle, fontFamily: 'ui-monospace, monospace' }}
+            type="password"
+            placeholder="hm_prod_..."
+            value={form.harmonicApiKey || ''}
+            onChange={e => handleChange('harmonicApiKey', e.target.value)}
+          />
+          <p style={hintStyle}>Get your API key from <a href="https://console.harmonic.ai/docs/dashboard" target="_blank" rel="noopener noreferrer" style={{ color: '#60a5fa', textDecoration: 'none' }}>console.harmonic.ai</a>. Stored locally in your browser.</p>
         </div>
       </div>
 

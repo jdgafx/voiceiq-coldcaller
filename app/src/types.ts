@@ -43,6 +43,7 @@ export interface AppSettings {
   googleCalendarConnected?: boolean;
   googleClientId?: string;
   googleClientSecret?: string;
+  harmonicApiKey?: string;
 }
 
 export interface CallResult {
