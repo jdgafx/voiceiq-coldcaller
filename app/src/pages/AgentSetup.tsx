@@ -178,7 +178,7 @@ const KNOWLEDGE_EXTRACTION = {
 const NOTIFICATION_SETTINGS = [
   { label: 'Notification Channel', value: 'Email', note: 'Only channel currently available. Enable it.' },
   { label: 'Notification Events', value: 'Call Completed + Call Lead Created', note: 'Get notified on completed calls AND when leads are generated. Uncheck Call Failed and Call Transferred unless debugging.' },
-  { label: 'Recipient Email', value: 'michael@primemarketingexperts.com', note: 'Set to your notification email from VoiceIQ Settings. Change in Settings → Notification Email.' },
+  { label: 'Recipient Email', value: 'michael@primemarketingexperts.com', note: 'Set this in Dialora to match your VoiceIQ notification email. To change the email itself, go to VoiceIQ Settings (left sidebar) → Notification Email.' },
 ];
 
 /* All settings combined for copy-all functionality */
@@ -286,7 +286,10 @@ function StepScriptPreview({ onNext }: { onNext: () => void }) {
         Review Your Agent's Script
       </h2>
       <p style={{ margin: '0 0 20px', fontSize: 14, color: '#64748b', lineHeight: 1.6 }}>
-        This system prompt will be pasted into your Dialora agent's "Agent Prompt" field. Alex will follow this script on every call.
+        This system prompt will be pasted into your{' '}
+        <a href="https://app.dialora.ai" target="_blank" rel="noopener noreferrer" style={{ color: '#60a5fa', textDecoration: 'none', fontWeight: 600 }}>
+          Dialora agent's "Agent Prompt" field <ExternalLink size={11} style={{ display: 'inline', verticalAlign: 'middle' }} />
+        </a>. Alex will follow this script on every call.
         Includes 13 objection handlers, compliance rules, lead qualification, and voicemail script.
       </p>
 
@@ -367,20 +370,30 @@ function StepAllSettings({ onNext, onBack }: { onNext: () => void; onBack: () =>
       <h2 style={{ margin: '0 0 8px', fontSize: 22, fontWeight: 700, color: '#f8fafc' }}>
         Dialora Agent Settings — All Tabs
       </h2>
-      <p style={{ margin: '0 0 24px', fontSize: 14, color: '#64748b', lineHeight: 1.6 }}>
-        Apply these settings in your Dialora dashboard across Basic Settings and Advanced Settings tabs. Copy values individually or by section.
+      <p style={{ margin: '0 0 16px', fontSize: 14, color: '#64748b', lineHeight: 1.6 }}>
+        Apply these settings in your{' '}
+        <a href="https://app.dialora.ai" target="_blank" rel="noopener noreferrer" style={{ color: '#60a5fa', textDecoration: 'none', fontWeight: 600 }}>
+          Dialora Dashboard <ExternalLink size={11} style={{ display: 'inline', verticalAlign: 'middle' }} />
+        </a>{' '}
+        across the Basic Settings and Advanced Settings tabs. Copy values individually or by section.
       </p>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '10px 14px', background: 'rgba(245,158,11,0.06)', border: '1px solid rgba(245,158,11,0.15)', borderRadius: 8, marginBottom: 24, fontSize: 12, color: '#fbbf24', lineHeight: 1.5 }}>
+        <AlertCircle size={14} style={{ flexShrink: 0 }} />
+        <span>All settings below are <strong>Dialora settings</strong> — configure them inside your agent at{' '}
+          <a href="https://app.dialora.ai" target="_blank" rel="noopener noreferrer" style={{ color: '#60a5fa', textDecoration: 'underline' }}>app.dialora.ai</a>, not in VoiceIQ.
+        </span>
+      </div>
 
-      <SettingsTable title="Basic Settings Tab" icon={<Bot size={15} color="#60a5fa" />} settings={BASIC_SETTINGS} />
-      <SettingsTable title="AI Behavior & Model Configuration" icon={<Zap size={15} color="#f59e0b" />} settings={AI_MODEL_SETTINGS} />
-      <SettingsTable title="Voice & Audio Settings" icon={<Mic size={15} color="#a78bfa" />} settings={VOICE_AUDIO_SETTINGS} />
-      <SettingsTable title="Call Management" icon={<Settings2 size={15} color="#ef4444" />} settings={CALL_MANAGEMENT_SETTINGS} />
+      <SettingsTable title="Dialora → Basic Settings" icon={<Bot size={15} color="#60a5fa" />} settings={BASIC_SETTINGS} />
+      <SettingsTable title="Dialora → Advanced Settings → AI Behavior & Model" icon={<Zap size={15} color="#f59e0b" />} settings={AI_MODEL_SETTINGS} />
+      <SettingsTable title="Dialora → Advanced Settings → Voice & Audio" icon={<Mic size={15} color="#a78bfa" />} settings={VOICE_AUDIO_SETTINGS} />
+      <SettingsTable title="Dialora → Advanced Settings → Call Management" icon={<Settings2 size={15} color="#ef4444" />} settings={CALL_MANAGEMENT_SETTINGS} />
 
       {/* Extract Data — special block */}
       <div style={{ marginBottom: 24 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12 }}>
           <Clipboard size={15} color="#14b8a6" />
-          <span style={{ fontSize: 13, fontWeight: 600, color: '#e2e8f0' }}>Knowledge & Extraction — Extract Data</span>
+          <span style={{ fontSize: 13, fontWeight: 600, color: '#e2e8f0' }}>Dialora → Advanced Settings → Knowledge & Extraction</span>
           <div style={{ flex: 1 }} />
           <CopyButton text={KNOWLEDGE_EXTRACTION.value} />
         </div>
@@ -392,13 +405,18 @@ function StepAllSettings({ onNext, onBack }: { onNext: () => void; onBack: () =>
         </div>
       </div>
 
-      <SettingsTable title="Message & Notifications" icon={<Building2 size={15} color="#10b981" />} settings={NOTIFICATION_SETTINGS} />
+      <SettingsTable title="Dialora → Advanced Settings → Message & Notifications" icon={<Building2 size={15} color="#10b981" />} settings={NOTIFICATION_SETTINGS} />
 
       <div style={{ background: 'rgba(59,130,246,0.06)', border: '1px solid rgba(59,130,246,0.15)', borderRadius: 10, padding: '14px 18px', marginBottom: 28 }}>
-        <div style={{ fontSize: 12, fontWeight: 700, color: '#60a5fa', marginBottom: 6 }}>Data Integration & Tools</div>
+        <div style={{ fontSize: 12, fontWeight: 700, color: '#60a5fa', marginBottom: 6 }}>
+          Dialora → Advanced Settings → Data Integration & Tools{' '}
+          <a href="https://app.dialora.ai" target="_blank" rel="noopener noreferrer" style={{ color: '#60a5fa', fontWeight: 400, textDecoration: 'underline', marginLeft: 6 }}>
+            Open in Dialora <ExternalLink size={10} style={{ display: 'inline', verticalAlign: 'middle' }} />
+          </a>
+        </div>
         <div style={{ fontSize: 12, color: '#94a3b8', lineHeight: 1.6 }}>
-          In the "Data Integration & Tools" section, click "+ Select Tools From Library" and add any calendar booking or CRM tools available.
-          If you use a webhook workflow for lead notifications, configure it under "Connected Workflow" in Basic Settings.
+          In the Dialora "Data Integration & Tools" section, click "+ Select Tools From Library" and add any calendar booking or CRM tools available.
+          If you use a webhook workflow for lead notifications, configure it under "Connected Workflow" in Dialora's Basic Settings tab.
         </div>
       </div>
 
@@ -470,19 +488,22 @@ function StepConnect({
     );
   }
 
-  const setupSteps: Array<{ text: string; link: boolean; code?: string }> = [
-    { text: 'Go to Dialora Dashboard → Create New Agent (or edit existing)', link: true },
-    { text: 'Paste the Agent Prompt from Step 1 into the "Agent Prompt" field', link: false },
-    { text: 'Apply all settings from Step 2 across Basic Settings and Advanced Settings tabs', link: false },
-    { text: 'In Advanced Settings → Call Management, set the result callback URL to:', link: false, code: callbackUrl },
-    { text: "Copy your agent's Webhook Trigger URL from Dialora and paste it below", link: false },
+  const setupSteps: Array<{ text: string; link?: string; code?: string }> = [
+    { text: 'Go to Dialora Dashboard → Create New Agent (or edit existing)', link: 'https://app.dialora.ai' },
+    { text: 'In Dialora, paste the Agent Prompt from Step 1 into the "Agent Prompt" field' },
+    { text: 'In Dialora, apply all settings from Step 2 across the Basic Settings and Advanced Settings tabs', link: 'https://app.dialora.ai' },
+    { text: 'In Dialora → Advanced Settings → Call Management, set the result callback URL to:', link: 'https://app.dialora.ai', code: callbackUrl },
+    { text: "Copy your agent's Webhook Trigger URL from Dialora and paste it below", link: 'https://app.dialora.ai' },
   ];
 
   return (
     <div>
       <h2 style={{ margin: '0 0 8px', fontSize: 22, fontWeight: 700, color: '#f8fafc' }}>Connect Your Agent</h2>
       <p style={{ margin: '0 0 28px', fontSize: 14, color: '#64748b', lineHeight: 1.6 }}>
-        Create your agent in Dialora's dashboard, then paste the webhook URL here
+        Create your agent in the{' '}
+        <a href="https://app.dialora.ai" target="_blank" rel="noopener noreferrer" style={{ color: '#60a5fa', textDecoration: 'none', fontWeight: 600 }}>
+          Dialora Dashboard <ExternalLink size={11} style={{ display: 'inline', verticalAlign: 'middle' }} />
+        </a>, then paste the webhook URL here
       </p>
 
       <div style={{ marginBottom: 28 }}>
@@ -498,12 +519,13 @@ function StepConnect({
             </div>
             <div style={{ paddingBottom: i < setupSteps.length - 1 ? 20 : 0, paddingTop: 4 }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-                {s.link ? (
-                  <a href="https://app.dialora.ai" target="_blank" rel="noopener noreferrer" style={{ fontSize: 13, color: '#60a5fa', lineHeight: 1.5, textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: 6 }}>
-                    {s.text} <ExternalLink size={13} />
+                <span style={{ fontSize: 13, color: '#e2e8f0', lineHeight: 1.5 }}>
+                  {s.text}
+                </span>
+                {s.link && (
+                  <a href={s.link} target="_blank" rel="noopener noreferrer" style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 11, fontWeight: 600, color: '#60a5fa', background: 'rgba(59,130,246,0.1)', border: '1px solid rgba(59,130,246,0.2)', borderRadius: 5, padding: '3px 8px', textDecoration: 'none', whiteSpace: 'nowrap' }}>
+                    Open Dialora <ExternalLink size={10} />
                   </a>
-                ) : (
-                  <span style={{ fontSize: 13, color: '#e2e8f0', lineHeight: 1.5 }}>{s.text}</span>
                 )}
               </div>
               {s.code && (
