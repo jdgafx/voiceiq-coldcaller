@@ -4,7 +4,7 @@ import {
   ArrowLeft, Upload, UserPlus, Play, Pause, Square,
   RotateCcw, CheckCircle2, XCircle, Clock, PhoneCall,
   Ban, Trash2, Building2, ChevronDown, ChevronUp,
-  FileText, Headphones, Timer,
+  FileText, Headphones, Timer, Download,
 } from 'lucide-react';
 import { getCampaignById, saveCampaign } from '../data/store';
 import type { Campaign, Contact, LeadStatus, CallResult } from '../types';
@@ -430,6 +430,21 @@ export default function CampaignDetail() {
         </div>
         <input ref={fileInputRef} type="file" accept=".csv,text/csv" style={{ display: 'none' }} onChange={handleFileInput} />
 
+        <button
+          onClick={() => {
+            const csv = 'name,phone,email,company,notes\nJane Smith,+15551234567,jane@acmecorp.com,Acme Corp,HR Director — 85 employees\nJohn Doe,+15559876543,john@widgetsinc.com,Widgets Inc,Benefits Manager\n';
+            const blob = new Blob([csv], { type: 'text/csv' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'voiceiq-lead-template.csv';
+            a.click();
+            URL.revokeObjectURL(url);
+          }}
+          style={{ display: 'flex', alignItems: 'center', gap: 7, padding: '0 14px', background: 'rgba(245,158,11,0.08)', border: '1px solid rgba(245,158,11,0.2)', borderRadius: 10, color: '#fbbf24', fontSize: 12, fontWeight: 600, cursor: 'pointer', whiteSpace: 'nowrap' }}
+        >
+          <Download size={14} /> Template
+        </button>
         <button
           onClick={() => setShowAddForm(p => !p)}
           style={{ display: 'flex', alignItems: 'center', gap: 7, padding: '0 18px', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 10, color: '#94a3b8', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}
