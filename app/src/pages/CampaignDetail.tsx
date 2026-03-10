@@ -4,7 +4,7 @@ import {
   ArrowLeft, Upload, UserPlus, Play, Pause, Square,
   RotateCcw, CheckCircle2, XCircle, Clock, PhoneCall,
   Ban, Trash2, Building2, ChevronDown, ChevronUp,
-  FileText, Headphones, Timer, Download, ClipboardList, Loader2, X,
+  FileText, Headphones, Timer, Download, ClipboardList, X,
 } from 'lucide-react';
 import { getCampaignById, saveCampaign } from '../data/store';
 import type { Campaign, Contact, LeadStatus, CallResult } from '../types';
