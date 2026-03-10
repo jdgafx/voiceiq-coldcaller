@@ -435,7 +435,7 @@ function StepConnect({
       const res = await fetch('/api/trigger-call', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ webhookUrl, contact: { name: 'Test Contact', phone: '+15555550000' } }),
+        body: JSON.stringify({ webhookUrl, testOnly: true }),
       });
       setTestState(res.ok ? 'success' : 'error');
     } catch {

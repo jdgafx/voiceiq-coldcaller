@@ -75,10 +75,7 @@ export default function Settings() {
       const resp = await fetch('/api/trigger-call', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          webhookUrl: url,
-          contact: { name: 'Test Contact', phone: '+15555550000' },
-        }),
+        body: JSON.stringify({ webhookUrl: url, testOnly: true }),
       });
       setter(resp.ok ? 'success' : 'error');
     } catch {
