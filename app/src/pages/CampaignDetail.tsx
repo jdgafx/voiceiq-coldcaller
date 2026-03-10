@@ -4,9 +4,9 @@ import {
   ArrowLeft, Upload, UserPlus, Play, Pause, Square,
   RotateCcw, CheckCircle2, XCircle, Clock, PhoneCall,
   Ban, Trash2, Building2, ChevronDown, ChevronUp,
-  FileText, Headphones, Timer, Download, Search, Loader2, X,
+  FileText, Headphones, Timer, Download, ClipboardList, Loader2, X,
 } from 'lucide-react';
-import { getCampaignById, saveCampaign, getSettings } from '../data/store';
+import { getCampaignById, saveCampaign } from '../data/store';
 import type { Campaign, Contact, LeadStatus, CallResult } from '../types';
 
 const LEAD_STATUS_OPTIONS: { value: LeadStatus; label: string; color: string }[] = [
@@ -80,50 +80,104 @@ function normalizeLeadStatus(raw?: string | null): LeadStatus | undefined {
   return map[lower];
 }
 
-interface HarmonicLead {
-  name: string;
-  company: string;
-  title: string;
-  email: string;
-  phone: string;
-  linkedin: string;
-  location: string;
+// ── Smart parsers for unstructured text, TSV, and pasted data ──────────
+const PHONE_RE = /(?:\+?1[-.\s]?)?\(?\d{3}\)?[-.\s]?\d{3}[-.\s]?\d{4}/;
+const EMAIL_RE = /[\w.-]+@[\w.-]+\.\w{2,}/i;
+
+function parseTsv(text: string): Partial<Contact>[] {
+  const lines = text.split('\n').filter(l => l.trim());
+  if (lines.length < 2) return [];
+  const headers = lines[0].split('\t').map(h => h.trim().toLowerCase().replace(/\s+/g, '_').replace(/['"]/g, ''));
+  return lines.slice(1).map(line => {
+    const vals = line.split('\t').map(v => v.trim());
+    const obj: Record<string, string> = {};
+    headers.forEach((h, i) => { obj[h] = vals[i] ?? ''; });
+    return {
+      name: obj.name || obj.full_name || obj.business_name || obj.business || '',
+      phone: obj.phone || obj.phone_number || obj.telephone || obj.mobile || '',
+      email: obj.email || obj.email_address || '',
+      company: obj.company || obj.company_name || obj.business || obj.business_name || '',
+      notes: obj.notes || obj.address || obj.title || '',
+      leadSource: 'Import',
+    };
+  }).filter(c => c.name && c.phone);
 }
 
-function LeadFinderModal({ onClose, onImport }: { onClose: () => void; onImport: (contacts: Partial<Contact>[]) => void }) {
-  const [query, setQuery] = useState('HR Director supplemental benefits');
-  const [limit, setLimit] = useState(25);
-  const [results, setResults] = useState<HarmonicLead[]>([]);
-  const [selected, setSelected] = useState<Set<number>>(new Set());
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
+function parseSmartText(text: string): Partial<Contact>[] {
+  const lines = text.split('\n').map(l => l.trim()).filter(Boolean);
+  if (lines.length === 0) return [];
 
-  const settings = getSettings();
-  const hasKey = !!(settings.harmonicApiKey);
+  // Auto-detect CSV
+  const header = lines[0].toLowerCase();
+  if (header.includes(',') && /name|phone|email|company/.test(header)) {
+    return parseCsv(text);
+  }
+  // Auto-detect TSV
+  if (header.includes('\t') && lines.length > 1 && lines[1].includes('\t')) {
+    return parseTsv(text);
+  }
 
-  async function handleSearch() {
-    if (!query.trim()) return;
-    setLoading(true);
-    setError('');
-    setResults([]);
-    setSelected(new Set());
-    try {
-      const resp = await fetch('/api/search-leads', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ query, limit, apiKey: settings.harmonicApiKey }),
-      });
-      const data = await resp.json();
-      if (!resp.ok) {
-        setError(data.error || `HTTP ${resp.status}`);
-      } else {
-        setResults(data.contacts || []);
-        if (data.contacts?.length === 0) setError('No results found. Try a different search query.');
+  // Unstructured text: find phone numbers and associate with nearby context
+  const contacts: Partial<Contact>[] = [];
+  const usedLines = new Set<number>();
+
+  for (let i = 0; i < lines.length; i++) {
+    const phoneMatch = lines[i].match(PHONE_RE);
+    if (!phoneMatch) continue;
+
+    const phone = phoneMatch[0];
+    usedLines.add(i);
+
+    // Look backwards for name/company (first substantial, non-data line)
+    let name = '';
+    for (let j = i - 1; j >= Math.max(0, i - 5); j--) {
+      if (usedLines.has(j)) continue;
+      const prev = lines[j];
+      if (!PHONE_RE.test(prev) && !EMAIL_RE.test(prev) &&
+          prev.length > 2 && prev.length < 100 &&
+          !/^\d+\s/.test(prev) && !/^(rating|accredited|bbb|page|showing)/i.test(prev)) {
+        name = prev.replace(/[,.:;]+$/, '').trim();
+        usedLines.add(j);
+        break;
       }
-    } catch {
-      setError('Network error — could not reach the server.');
     }
-    setLoading(false);
+
+    // Look nearby for email
+    const nearby = lines.slice(Math.max(0, i - 3), Math.min(lines.length, i + 3)).join(' ');
+    const emailMatch = nearby.match(EMAIL_RE);
+
+    // Look for address (line with state abbreviation + zip)
+    let notes = '';
+    for (let j = Math.max(0, i - 3); j < Math.min(lines.length, i + 3); j++) {
+      if (/\b[A-Z]{2}\s+\d{5}/.test(lines[j]) && j !== i) {
+        notes = lines[j];
+        break;
+      }
+    }
+
+    contacts.push({
+      name: name || 'Unknown',
+      phone,
+      email: emailMatch?.[0],
+      company: name,
+      notes,
+      leadSource: 'Paste Import',
+    });
+  }
+
+  return contacts;
+}
+
+// ── Paste Data Modal ────────────────────────────────────────────────────
+function PasteDataModal({ onClose, onImport }: { onClose: () => void; onImport: (contacts: Partial<Contact>[]) => void }) {
+  const [rawText, setRawText] = useState('');
+  const [parsed, setParsed] = useState<Partial<Contact>[]>([]);
+  const [selected, setSelected] = useState<Set<number>>(new Set());
+
+  function handleParse() {
+    const results = parseSmartText(rawText);
+    setParsed(results);
+    setSelected(new Set(results.map((_, i) => i))); // select all by default
   }
 
   function toggleSelect(i: number) {
@@ -134,128 +188,99 @@ function LeadFinderModal({ onClose, onImport }: { onClose: () => void; onImport:
     });
   }
 
-  function selectAll() {
-    if (selected.size === results.length) {
-      setSelected(new Set());
-    } else {
-      setSelected(new Set(results.map((_, i) => i)));
-    }
-  }
-
   function handleImport() {
-    const leads = results.filter((_, i) => selected.has(i));
-    onImport(leads.map(l => ({
-      name: l.name,
-      phone: l.phone,
-      email: l.email,
-      company: l.company,
-      notes: [l.title, l.location].filter(Boolean).join(' — '),
-      leadSource: 'Harmonic.ai',
-    })));
+    const leads = parsed.filter((_, i) => selected.has(i));
+    onImport(leads);
     onClose();
   }
 
   return (
     <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: 20 }}>
-      <div style={{ background: '#0a0a12', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 16, width: '100%', maxWidth: 820, maxHeight: '85vh', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+      <div style={{ background: '#0a0a12', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 16, width: '100%', maxWidth: 880, maxHeight: '85vh', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
         {/* Header */}
         <div style={{ padding: '18px 22px', borderBottom: '1px solid rgba(255,255,255,0.06)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <div>
-            <h2 style={{ margin: 0, fontSize: 18, fontWeight: 700, color: '#f8fafc' }}>Find B2B Leads</h2>
-            <p style={{ margin: '4px 0 0', fontSize: 12, color: '#64748b' }}>Search Harmonic.ai for HR directors, benefits managers, and business owners</p>
+            <h2 style={{ margin: 0, fontSize: 18, fontWeight: 700, color: '#f8fafc' }}>Paste Lead Data</h2>
+            <p style={{ margin: '4px 0 0', fontSize: 12, color: '#64748b' }}>Paste text from BBB.org, directories, spreadsheets, or any source — we'll extract the contacts</p>
           </div>
           <button onClick={onClose} style={{ background: 'none', border: 'none', color: '#64748b', cursor: 'pointer', padding: 4 }}><X size={18} /></button>
         </div>
 
-        {/* Search bar */}
-        <div style={{ padding: '14px 22px', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
-          {!hasKey && (
-            <div style={{ padding: '10px 14px', background: 'rgba(245,158,11,0.08)', border: '1px solid rgba(245,158,11,0.2)', borderRadius: 8, marginBottom: 12, fontSize: 12, color: '#fbbf24', lineHeight: 1.5 }}>
-              Harmonic API key not set. Go to <strong>Settings</strong> (left sidebar) and add your key in the Harmonic section.
+        {/* Input area */}
+        {parsed.length === 0 && (
+          <div style={{ padding: '14px 22px', flex: 1, display: 'flex', flexDirection: 'column' }}>
+            <div style={{ padding: '10px 14px', background: 'rgba(59,130,246,0.06)', border: '1px solid rgba(59,130,246,0.15)', borderRadius: 8, marginBottom: 12, fontSize: 12, color: '#93c5fd', lineHeight: 1.5 }}>
+              <strong>Supports:</strong> CSV, tab-separated data, or raw text from any business directory. The parser auto-detects phone numbers and associates them with nearby business names.
             </div>
-          )}
-          <div style={{ display: 'flex', gap: 10 }}>
-            <div style={{ flex: 1, position: 'relative' }}>
-              <Search size={14} color="#475569" style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)' }} />
-              <input
-                value={query}
-                onChange={e => setQuery(e.target.value)}
-                onKeyDown={e => e.key === 'Enter' && handleSearch()}
-                placeholder="e.g. HR Director employee benefits Texas"
-                style={{ width: '100%', boxSizing: 'border-box', padding: '10px 12px 10px 34px', background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 8, color: '#f1f5f9', fontSize: 13, outline: 'none' }}
-              />
+            <textarea
+              value={rawText}
+              onChange={e => setRawText(e.target.value)}
+              placeholder={'Paste your data here. Examples:\n\nCSV:\nname,phone,email,company\nJane Smith,(860) 555-1234,jane@acme.com,Acme Corp\n\nRaw directory text:\nSmith Manufacturing LLC\n(860) 555-1234\n123 Main St, Hartford, CT 06103\n\nBeta Insurance Group\n(203) 555-5678\nbeta@insurance.com'}
+              style={{ flex: 1, minHeight: 250, width: '100%', boxSizing: 'border-box', padding: 14, background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 8, color: '#e2e8f0', fontSize: 13, fontFamily: 'ui-monospace, monospace', resize: 'vertical', outline: 'none', lineHeight: 1.6 }}
+            />
+            <div style={{ display: 'flex', gap: 10, marginTop: 14, justifyContent: 'flex-end' }}>
+              <button onClick={onClose} style={{ padding: '10px 18px', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 8, color: '#94a3b8', fontSize: 13, cursor: 'pointer' }}>Cancel</button>
+              <button
+                onClick={handleParse}
+                disabled={!rawText.trim()}
+                style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '10px 22px', background: rawText.trim() ? 'linear-gradient(135deg, #3b82f6, #14b8a6)' : 'rgba(255,255,255,0.05)', border: 'none', borderRadius: 8, color: rawText.trim() ? '#fff' : '#475569', fontSize: 13, fontWeight: 600, cursor: rawText.trim() ? 'pointer' : 'not-allowed' }}
+              >
+                Parse Contacts
+              </button>
             </div>
-            <select
-              value={limit}
-              onChange={e => setLimit(Number(e.target.value))}
-              style={{ padding: '10px 12px', background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 8, color: '#f1f5f9', fontSize: 12, cursor: 'pointer', outline: 'none' }}
-            >
-              {[10, 25, 50].map(n => <option key={n} value={n} style={{ background: '#0a0a12' }}>{n} results</option>)}
-            </select>
-            <button
-              onClick={handleSearch}
-              disabled={loading || !query.trim() || !hasKey}
-              style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '10px 18px', background: 'linear-gradient(135deg, #3b82f6, #14b8a6)', border: 'none', borderRadius: 8, color: '#fff', fontSize: 13, fontWeight: 600, cursor: loading || !hasKey ? 'not-allowed' : 'pointer', opacity: loading || !hasKey ? 0.5 : 1, whiteSpace: 'nowrap' }}
-            >
-              {loading ? <Loader2 size={14} style={{ animation: 'spin 1s linear infinite' }} /> : <Search size={14} />}
-              Search
-            </button>
           </div>
-        </div>
+        )}
 
-        {/* Results */}
-        <div style={{ flex: 1, overflowY: 'auto', padding: '0 22px' }}>
-          {error && (
-            <div style={{ margin: '16px 0', padding: '12px 16px', background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.2)', borderRadius: 8, fontSize: 12, color: '#f87171' }}>{error}</div>
-          )}
-          {results.length > 0 && (
-            <table style={{ width: '100%', borderCollapse: 'collapse', marginTop: 8 }}>
-              <thead>
-                <tr style={{ borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
-                  <th style={{ padding: '8px 6px', textAlign: 'left', width: 30 }}>
-                    <input type="checkbox" checked={selected.size === results.length} onChange={selectAll} style={{ cursor: 'pointer' }} />
-                  </th>
-                  {['Name', 'Company', 'Title', 'Phone', 'Email'].map(h => (
-                    <th key={h} style={{ padding: '8px 8px', textAlign: 'left', fontSize: 10, fontWeight: 600, color: '#475569', textTransform: 'uppercase', letterSpacing: '0.06em' }}>{h}</th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {results.map((lead, i) => (
-                  <tr key={i} onClick={() => toggleSelect(i)} style={{ borderBottom: '1px solid rgba(255,255,255,0.03)', cursor: 'pointer', background: selected.has(i) ? 'rgba(59,130,246,0.06)' : 'transparent' }}>
-                    <td style={{ padding: '8px 6px' }}>
-                      <input type="checkbox" checked={selected.has(i)} readOnly style={{ cursor: 'pointer' }} />
-                    </td>
-                    <td style={{ padding: '8px 8px', fontSize: 12, fontWeight: 500, color: '#e2e8f0' }}>{lead.name || '—'}</td>
-                    <td style={{ padding: '8px 8px', fontSize: 12, color: '#94a3b8' }}>{lead.company || '—'}</td>
-                    <td style={{ padding: '8px 8px', fontSize: 11, color: '#64748b' }}>{lead.title || '—'}</td>
-                    <td style={{ padding: '8px 8px', fontSize: 11, color: '#94a3b8', fontFamily: 'monospace' }}>{lead.phone || '—'}</td>
-                    <td style={{ padding: '8px 8px', fontSize: 11, color: '#64748b', maxWidth: 160, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{lead.email || '—'}</td>
+        {/* Results preview */}
+        {parsed.length > 0 && (
+          <>
+            <div style={{ padding: '10px 22px', background: 'rgba(16,185,129,0.04)', borderBottom: '1px solid rgba(255,255,255,0.06)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <span style={{ fontSize: 13, color: '#10b981', fontWeight: 600 }}>Found {parsed.length} contact{parsed.length !== 1 ? 's' : ''} with phone numbers</span>
+              <button onClick={() => { setParsed([]); setSelected(new Set()); }} style={{ fontSize: 12, color: '#64748b', background: 'none', border: 'none', cursor: 'pointer', textDecoration: 'underline' }}>← Edit text</button>
+            </div>
+            <div style={{ flex: 1, overflowY: 'auto', padding: '0 22px' }}>
+              <table style={{ width: '100%', borderCollapse: 'collapse', marginTop: 8 }}>
+                <thead>
+                  <tr style={{ borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+                    <th style={{ padding: '8px 6px', textAlign: 'left', width: 30 }}>
+                      <input type="checkbox" checked={selected.size === parsed.length} onChange={() => setSelected(prev => prev.size === parsed.length ? new Set() : new Set(parsed.map((_, i) => i)))} style={{ cursor: 'pointer' }} />
+                    </th>
+                    {['Name', 'Phone', 'Email', 'Company', 'Notes'].map(h => (
+                      <th key={h} style={{ padding: '8px 8px', textAlign: 'left', fontSize: 10, fontWeight: 600, color: '#475569', textTransform: 'uppercase', letterSpacing: '0.06em' }}>{h}</th>
+                    ))}
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          )}
-          {!loading && results.length === 0 && !error && (
-            <div style={{ textAlign: 'center', padding: '40px 0', color: '#334155' }}>
-              <Search size={32} style={{ opacity: 0.2, marginBottom: 10 }} />
-              <p style={{ fontSize: 13, margin: 0 }}>Search for leads to get started</p>
+                </thead>
+                <tbody>
+                  {parsed.map((c, i) => (
+                    <tr key={i} onClick={() => toggleSelect(i)} style={{ borderBottom: '1px solid rgba(255,255,255,0.03)', cursor: 'pointer', background: selected.has(i) ? 'rgba(59,130,246,0.06)' : 'transparent' }}>
+                      <td style={{ padding: '8px 6px' }}>
+                        <input type="checkbox" checked={selected.has(i)} readOnly style={{ cursor: 'pointer' }} />
+                      </td>
+                      <td style={{ padding: '8px 8px', fontSize: 12, fontWeight: 500, color: '#e2e8f0' }}>{c.name || '—'}</td>
+                      <td style={{ padding: '8px 8px', fontSize: 12, color: '#10b981', fontFamily: 'monospace', fontWeight: 600 }}>{c.phone || '—'}</td>
+                      <td style={{ padding: '8px 8px', fontSize: 11, color: '#64748b' }}>{c.email || '—'}</td>
+                      <td style={{ padding: '8px 8px', fontSize: 11, color: '#94a3b8' }}>{c.company || '—'}</td>
+                      <td style={{ padding: '8px 8px', fontSize: 11, color: '#475569', maxWidth: 180, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{c.notes || '—'}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </div>
-          )}
-        </div>
+            <div style={{ padding: '14px 22px', borderTop: '1px solid rgba(255,255,255,0.06)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <span style={{ fontSize: 12, color: '#64748b' }}>{selected.size} of {parsed.length} selected</span>
+              <button
+                onClick={handleImport}
+                disabled={selected.size === 0}
+                style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '10px 20px', background: selected.size > 0 ? 'linear-gradient(135deg, #10b981, #059669)' : 'rgba(255,255,255,0.05)', border: 'none', borderRadius: 8, color: selected.size > 0 ? '#fff' : '#475569', fontSize: 13, fontWeight: 600, cursor: selected.size > 0 ? 'pointer' : 'not-allowed' }}
+              >
+                Import {selected.size} Lead{selected.size !== 1 ? 's' : ''} to Campaign
+              </button>
+            </div>
+          </>
+        )}
 
-        {/* Footer */}
-        {results.length > 0 && (
-          <div style={{ padding: '14px 22px', borderTop: '1px solid rgba(255,255,255,0.06)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-            <span style={{ fontSize: 12, color: '#64748b' }}>{selected.size} of {results.length} selected</span>
-            <button
-              onClick={handleImport}
-              disabled={selected.size === 0}
-              style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '10px 20px', background: selected.size > 0 ? 'linear-gradient(135deg, #10b981, #059669)' : 'rgba(255,255,255,0.05)', border: 'none', borderRadius: 8, color: selected.size > 0 ? '#fff' : '#475569', fontSize: 13, fontWeight: 600, cursor: selected.size > 0 ? 'pointer' : 'not-allowed' }}
-            >
-              Import {selected.size} Lead{selected.size !== 1 ? 's' : ''} to Campaign
-            </button>
-          </div>
+        {parsed.length === 0 && rawText.trim() && parsed.length === 0 && (
+          <div /> /* placeholder — parsing hasn't run yet */
         )}
       </div>
     </div>
@@ -268,7 +293,7 @@ export default function CampaignDetail() {
   const [campaign, setCampaign] = useState<Campaign | null>(null);
   const [showAddForm, setShowAddForm] = useState(false);
   const [isDragOver, setIsDragOver] = useState(false);
-  const [showLeadFinder, setShowLeadFinder] = useState(false);
+  const [showPasteModal, setShowPasteModal] = useState(false);
   const abortRef = useRef(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -389,33 +414,59 @@ export default function CampaignDetail() {
     e.preventDefault();
     setIsDragOver(false);
     const file = e.dataTransfer.files[0];
-    if (file) loadCsv(file);
+    if (file) loadFile(file);
   }
 
   function handleFileInput(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
-    if (file) loadCsv(file);
+    if (file) loadFile(file);
     e.target.value = '';
   }
 
-  function loadCsv(file: File) {
+  function loadFile(file: File) {
     if (!campaign) return;
-    const reader = new FileReader();
-    reader.onload = ev => {
-      const parsed = parseCsv(ev.target?.result as string);
-      const newContacts: Contact[] = parsed.map(p => ({
-        id: crypto.randomUUID(),
-        name: p.name ?? '',
-        phone: p.phone ?? '',
-        email: p.email,
-        company: p.company,
-        notes: p.notes,
-        leadSource: p.leadSource,
-        status: 'pending',
-      }));
-      persist({ ...campaign, contacts: [...campaign.contacts, ...newContacts] });
-    };
-    reader.readAsText(file);
+    const ext = file.name.split('.').pop()?.toLowerCase();
+
+    if (ext === 'pdf') {
+      // Send PDF to server for text extraction
+      const reader = new FileReader();
+      reader.onload = async (ev) => {
+        const base64 = (ev.target?.result as string).split(',')[1];
+        try {
+          const resp = await fetch('/api/parse-pdf', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ data: base64 }),
+          });
+          const { text, error } = await resp.json();
+          if (error) { alert(`PDF parse error: ${error}`); return; }
+          const parsed = parseSmartText(text);
+          if (parsed.length === 0) { alert('No contacts with phone numbers found in this PDF.'); return; }
+          const newContacts: Contact[] = parsed.map(p => ({
+            id: crypto.randomUUID(), name: p.name ?? '', phone: p.phone ?? '',
+            email: p.email, company: p.company, notes: p.notes,
+            leadSource: p.leadSource || 'PDF Import', status: 'pending',
+          }));
+          persist({ ...campaign, contacts: [...campaign.contacts, ...newContacts] });
+        } catch { alert('Failed to parse PDF. Try copying the text and using Paste Data instead.'); }
+      };
+      reader.readAsDataURL(file);
+    } else {
+      // CSV, TXT, TSV — read as text and smart-parse
+      const reader = new FileReader();
+      reader.onload = ev => {
+        const text = ev.target?.result as string;
+        const parsed = parseSmartText(text);
+        if (parsed.length === 0) { alert('No contacts with phone numbers found. Check the file format.'); return; }
+        const newContacts: Contact[] = parsed.map(p => ({
+          id: crypto.randomUUID(), name: p.name ?? '', phone: p.phone ?? '',
+          email: p.email, company: p.company, notes: p.notes,
+          leadSource: p.leadSource || 'File Import', status: 'pending',
+        }));
+        persist({ ...campaign, contacts: [...campaign.contacts, ...newContacts] });
+      };
+      reader.readAsText(file);
+    }
   }
 
   async function launchCampaign() {
@@ -607,11 +658,11 @@ export default function CampaignDetail() {
         >
           <Upload size={18} color="#64748b" />
           <div>
-            <div style={{ fontSize: 13, fontWeight: 600, color: '#94a3b8' }}>Import CSV</div>
-            <div style={{ fontSize: 11, color: '#475569' }}>Drop file or click • columns: name, phone, email, company, notes</div>
+            <div style={{ fontSize: 13, fontWeight: 600, color: '#94a3b8' }}>Import File</div>
+            <div style={{ fontSize: 11, color: '#475569' }}>Drop or click • CSV, TXT, PDF — auto-detects format and extracts contacts</div>
           </div>
         </div>
-        <input ref={fileInputRef} type="file" accept=".csv,text/csv" style={{ display: 'none' }} onChange={handleFileInput} />
+        <input ref={fileInputRef} type="file" accept=".csv,.txt,.tsv,.pdf,text/csv,text/plain,application/pdf" style={{ display: 'none' }} onChange={handleFileInput} />
 
         <button
           onClick={() => {
@@ -629,10 +680,10 @@ export default function CampaignDetail() {
           <Download size={14} /> Template
         </button>
         <button
-          onClick={() => setShowLeadFinder(true)}
+          onClick={() => setShowPasteModal(true)}
           style={{ display: 'flex', alignItems: 'center', gap: 7, padding: '0 16px', background: 'rgba(139,92,246,0.1)', border: '1px solid rgba(139,92,246,0.25)', borderRadius: 10, color: '#a78bfa', fontSize: 12, fontWeight: 600, cursor: 'pointer', whiteSpace: 'nowrap' }}
         >
-          <Search size={14} /> Find Leads
+          <ClipboardList size={14} /> Paste Data
         </button>
         <button
           onClick={() => setShowAddForm(p => !p)}
@@ -802,9 +853,9 @@ export default function CampaignDetail() {
         </div>
       )}
 
-      {showLeadFinder && (
-        <LeadFinderModal
-          onClose={() => setShowLeadFinder(false)}
+      {showPasteModal && (
+        <PasteDataModal
+          onClose={() => setShowPasteModal(false)}
           onImport={(leads) => {
             if (!campaign) return;
             const newContacts: Contact[] = leads.map(l => ({
