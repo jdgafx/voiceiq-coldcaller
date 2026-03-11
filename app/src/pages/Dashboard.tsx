@@ -139,6 +139,63 @@ export default function Dashboard() {
         </div>
       </div>
 
+      {/* ─── Quick Setup (visible while incomplete) ─────────── */}
+      {(!settings.b2bWebhookUrl || !settings.zapierWebhookUrl || campaigns.length === 0) && (
+        <div style={{
+          background: 'rgba(59,130,246,0.04)',
+          border: '1px solid rgba(59,130,246,0.1)',
+          borderRadius: 14,
+          padding: '20px 24px',
+          marginBottom: 28,
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
+            <span style={{ fontSize: 14, fontWeight: 700, color: '#e2e8f0' }}>Quick Setup</span>
+            <span style={{ fontSize: 12, color: '#64748b' }}>
+              {[settings.b2bWebhookUrl, settings.zapierWebhookUrl, campaigns.length > 0].filter(Boolean).length} of 3 complete
+            </span>
+          </div>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12 }}>
+            {[
+              { done: !!settings.b2bWebhookUrl, num: '1', label: 'Connect AI Agent', hint: 'Link Dialora voice agent', doneHint: 'Dialora connected', to: '/agent-setup' },
+              { done: !!settings.zapierWebhookUrl, num: '2', label: 'Set Up Automation', hint: 'Zapier for calendar & email', doneHint: 'Zapier active', to: '/settings' },
+              { done: campaigns.length > 0, num: '3', label: 'Create Campaign', hint: 'Upload contacts & start calling', doneHint: `${campaigns.length} campaign${campaigns.length !== 1 ? 's' : ''}`, to: '/campaigns' },
+            ].map(step => (
+              <div
+                key={step.num}
+                onClick={() => navigate(step.to)}
+                style={{
+                  padding: '14px 16px',
+                  background: step.done ? 'rgba(16,185,129,0.05)' : '#0d0d14',
+                  border: `1px solid ${step.done ? 'rgba(16,185,129,0.18)' : 'rgba(255,255,255,0.07)'}`,
+                  borderRadius: 10,
+                  cursor: 'pointer',
+                  transition: 'border-color 0.15s',
+                }}
+                onMouseEnter={e => !step.done && (e.currentTarget.style.borderColor = 'rgba(59,130,246,0.3)')}
+                onMouseLeave={e => !step.done && (e.currentTarget.style.borderColor = 'rgba(255,255,255,0.07)')}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 6 }}>
+                  <div style={{
+                    width: 24, height: 24, borderRadius: '50%',
+                    background: step.done ? '#10b981' : 'rgba(59,130,246,0.15)',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    fontSize: 11, fontWeight: 700, color: step.done ? '#fff' : '#60a5fa',
+                  }}>
+                    {step.done ? <CheckCircle2 size={13} /> : step.num}
+                  </div>
+                  <span style={{ fontSize: 13, fontWeight: 600, color: step.done ? '#10b981' : '#e2e8f0' }}>
+                    {step.label}
+                  </span>
+                </div>
+                <p style={{ margin: 0, fontSize: 12, color: '#64748b', paddingLeft: 34 }}>
+                  {step.done ? step.doneHint : step.hint}
+                </p>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 16, marginBottom: 28 }}>
         <div className="glass-card" style={{ padding: '20px 18px' }}>
           <div style={{ width: 36, height: 36, borderRadius: 8, background: 'rgba(59,130,246,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 12 }}>
@@ -206,9 +263,9 @@ export default function Dashboard() {
             {!settings.b2bWebhookUrl && (
               <button
                 onClick={() => navigate('/agent-setup')}
-                style={{ fontSize: 11, color: '#60a5fa', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
+                style={{ fontSize: 12, color: '#fff', background: 'rgba(59,130,246,0.2)', border: '1px solid rgba(59,130,246,0.3)', borderRadius: 6, cursor: 'pointer', padding: '5px 14px', fontWeight: 600, whiteSpace: 'nowrap' }}
               >
-                Set up →
+                Set up
               </button>
             )}
           </div>
@@ -237,9 +294,9 @@ export default function Dashboard() {
             {!settings.zapierWebhookUrl && (
               <button
                 onClick={() => navigate('/settings')}
-                style={{ fontSize: 11, color: '#60a5fa', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
+                style={{ fontSize: 12, color: '#fff', background: 'rgba(59,130,246,0.2)', border: '1px solid rgba(59,130,246,0.3)', borderRadius: 6, cursor: 'pointer', padding: '5px 14px', fontWeight: 600, whiteSpace: 'nowrap' }}
               >
-                Set up →
+                Set up
               </button>
             )}
           </div>
@@ -252,11 +309,17 @@ export default function Dashboard() {
           </div>
 
           {recentCalls.length === 0 ? (
-            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '32px 0', gap: 12 }}>
-              <PhoneCall size={32} color="#1e293b" />
-              <p style={{ margin: 0, fontSize: 13, color: '#475569', textAlign: 'center' }}>
-                No calls yet — launch a campaign to see activity here
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '32px 0', gap: 10 }}>
+              <PhoneCall size={28} color="#1e293b" />
+              <p style={{ margin: 0, fontSize: 13, color: '#64748b', textAlign: 'center', lineHeight: 1.6 }}>
+                No calls yet — create a campaign and live activity will appear here.
               </p>
+              <button
+                onClick={() => navigate('/campaigns')}
+                style={{ fontSize: 12, color: '#60a5fa', background: 'none', border: 'none', cursor: 'pointer', padding: 0, fontWeight: 600 }}
+              >
+                Go to Campaigns →
+              </button>
             </div>
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>

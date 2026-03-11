@@ -113,10 +113,41 @@ export default function Campaigns() {
       </div>
 
       {campaigns.length === 0 ? (
-        <div style={{ textAlign: 'center', padding: '80px 0', color: '#475569' }}>
-          <Phone size={48} style={{ opacity: 0.3, marginBottom: 16 }} />
-          <p style={{ fontSize: 16, fontWeight: 600, margin: '0 0 8px', color: '#64748b' }}>No campaigns yet</p>
-          <p style={{ fontSize: 13, margin: 0 }}>Create your first campaign to start making AI calls</p>
+        <div style={{ textAlign: 'center', padding: '60px 0', maxWidth: 440, margin: '0 auto' }}>
+          <Phone size={44} style={{ opacity: 0.15, marginBottom: 16 }} />
+          <p style={{ fontSize: 18, fontWeight: 700, margin: '0 0 6px', color: '#e2e8f0' }}>Create your first campaign</p>
+          <p style={{ fontSize: 14, color: '#64748b', margin: '0 0 28px', lineHeight: 1.6 }}>
+            Upload a contact list and the AI agent calls each person automatically.
+          </p>
+          <div style={{ textAlign: 'left', display: 'inline-flex', flexDirection: 'column', gap: 14, marginBottom: 28 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+              <div style={{ width: 22, height: 22, borderRadius: '50%', background: 'rgba(59,130,246,0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, fontWeight: 700, color: '#60a5fa', flexShrink: 0 }}>1</div>
+              <span style={{ fontSize: 13, color: '#94a3b8' }}>Click <strong style={{ color: '#e2e8f0' }}>New Campaign</strong> above</span>
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+              <div style={{ width: 22, height: 22, borderRadius: '50%', background: 'rgba(59,130,246,0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, fontWeight: 700, color: '#60a5fa', flexShrink: 0 }}>2</div>
+              <span style={{ fontSize: 13, color: '#94a3b8' }}>Upload or paste your contacts</span>
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+              <div style={{ width: 22, height: 22, borderRadius: '50%', background: 'rgba(59,130,246,0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, fontWeight: 700, color: '#60a5fa', flexShrink: 0 }}>3</div>
+              <span style={{ fontSize: 13, color: '#94a3b8' }}>Hit <strong style={{ color: '#e2e8f0' }}>Start Calling</strong> — the AI handles the rest</span>
+            </div>
+          </div>
+          <div>
+            <button
+              onClick={() => setShowModal(true)}
+              style={{
+                display: 'inline-flex', alignItems: 'center', gap: 8,
+                padding: '12px 24px',
+                background: 'linear-gradient(135deg, #3b82f6, #14b8a6)',
+                border: 'none', borderRadius: 8,
+                color: '#fff', fontSize: 14, fontWeight: 600, cursor: 'pointer',
+              }}
+            >
+              <Plus size={16} />
+              New Campaign
+            </button>
+          </div>
         </div>
       ) : (
         <div style={{ display: 'grid', gap: 12 }}>

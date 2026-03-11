@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Flame, Thermometer, Snowflake, Calendar, XCircle, PhoneCall, HelpCircle, Play, ChevronDown, ChevronUp, RefreshCw, TrendingUp } from 'lucide-react';
 import { getCampaigns, saveCampaign } from '../data/store';
 import type { Contact, LeadStatus, CallResult } from '../types';
@@ -129,6 +130,7 @@ function fetchServerResults(_contacts: EnrichedContact[], onDone: (results: Call
 }
 
 export default function Pipeline() {
+  const navigate = useNavigate();
   const [contacts, setContacts] = useState<EnrichedContact[]>([]);
   const [lastSync, setLastSync] = useState<Date | null>(null);
   const [syncing, setSyncing] = useState(false);
@@ -215,10 +217,25 @@ export default function Pipeline() {
       </div>
 
       {total === 0 ? (
-        <div style={{ textAlign: 'center', padding: '80px 0', color: '#475569' }}>
-          <TrendingUp size={48} style={{ opacity: 0.2, marginBottom: 16 }} />
-          <p style={{ fontSize: 15, fontWeight: 600, color: '#64748b', margin: '0 0 8px' }}>No calls yet</p>
-          <p style={{ fontSize: 13, margin: 0 }}>Launch a campaign and call results will appear here automatically</p>
+        <div style={{ textAlign: 'center', padding: '60px 0', maxWidth: 400, margin: '0 auto' }}>
+          <TrendingUp size={44} style={{ opacity: 0.15, marginBottom: 16 }} />
+          <p style={{ fontSize: 18, fontWeight: 700, color: '#e2e8f0', margin: '0 0 6px' }}>No calls yet</p>
+          <p style={{ fontSize: 14, color: '#64748b', margin: '0 0 24px', lineHeight: 1.6 }}>
+            Call results appear here automatically after each AI call. Start a campaign to see your pipeline fill up.
+          </p>
+          <button
+            onClick={() => navigate('/campaigns')}
+            style={{
+              display: 'inline-flex', alignItems: 'center', gap: 6,
+              padding: '10px 20px',
+              background: 'rgba(59,130,246,0.12)',
+              border: '1px solid rgba(59,130,246,0.25)',
+              borderRadius: 8,
+              color: '#60a5fa', fontSize: 13, fontWeight: 600, cursor: 'pointer',
+            }}
+          >
+            Go to Campaigns →
+          </button>
         </div>
       ) : (
         <div style={{ display: 'flex', gap: 14, overflowX: 'auto', paddingBottom: 16, minHeight: 400 }}>

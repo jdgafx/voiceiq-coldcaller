@@ -103,6 +103,41 @@ export default function Settings() {
         </div>
       </div>
 
+      {/* ─── Connection Status ──────────────────────────────── */}
+      <div style={{
+        display: 'grid',
+        gridTemplateColumns: 'repeat(3, 1fr)',
+        gap: 12,
+        marginBottom: 24,
+      }}>
+        {[
+          { label: 'AI Agent', ok: !!form.b2bWebhookUrl },
+          { label: 'Zapier', ok: !!form.zapierWebhookUrl },
+          { label: 'Email', ok: !!form.notificationEmail },
+        ].map(s => (
+          <div key={s.label} style={{
+            padding: '12px 14px',
+            background: s.ok ? 'rgba(16,185,129,0.05)' : 'rgba(245,158,11,0.05)',
+            border: `1px solid ${s.ok ? 'rgba(16,185,129,0.15)' : 'rgba(245,158,11,0.15)'}`,
+            borderRadius: 8,
+            display: 'flex',
+            alignItems: 'center',
+            gap: 8,
+          }}>
+            <div style={{
+              width: 8, height: 8, borderRadius: '50%',
+              background: s.ok ? '#10b981' : '#f59e0b',
+            }} />
+            <div>
+              <div style={{ fontSize: 12, fontWeight: 600, color: s.ok ? '#10b981' : '#f59e0b' }}>{s.label}</div>
+              <div style={{ fontSize: 10, color: '#64748b' }}>
+                {s.ok ? 'Connected' : 'Not set'}
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+
       {/* ─── EMAIL & CALENDAR (top priority — most visible) ──────────────── */}
       <div style={{ ...card, borderColor: 'rgba(59,130,246,0.15)', borderWidth: 1 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16 }}>

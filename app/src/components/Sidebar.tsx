@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { NavLink, useLocation } from 'react-router-dom';
+import { NavLink, useLocation, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   LayoutDashboard, Bot, Phone, TrendingUp,
@@ -67,6 +67,7 @@ const playbookLinkStyle = ({ isActive }: { isActive: boolean }): React.CSSProper
 
 export default function Sidebar() {
   const location = useLocation();
+  const navigate = useNavigate();
   const isPlaybookActive = PLAYBOOK_ROUTES.includes(location.pathname);
   const [playbookOpen, setPlaybookOpen] = useState(isPlaybookActive);
   const settings = getSettings();
@@ -300,25 +301,32 @@ export default function Sidebar() {
           Settings
         </NavLink>
 
-        <div style={{
-          background: agentConfigured ? 'rgba(16,185,129,0.08)' : 'rgba(245,158,11,0.08)',
-          border: `1px solid ${agentConfigured ? 'rgba(16,185,129,0.2)' : 'rgba(245,158,11,0.2)'}`,
-          borderRadius: 8,
-          padding: '10px 12px',
-          display: 'flex',
-          alignItems: 'center',
-          gap: 8,
-        }}>
+        <div
+          onClick={() => !agentConfigured && navigate('/agent-setup')}
+          style={{
+            background: agentConfigured ? 'rgba(16,185,129,0.08)' : 'rgba(245,158,11,0.08)',
+            border: `1px solid ${agentConfigured ? 'rgba(16,185,129,0.2)' : 'rgba(245,158,11,0.2)'}`,
+            borderRadius: 8,
+            padding: '10px 12px',
+            display: 'flex',
+            alignItems: 'center',
+            gap: 8,
+            cursor: agentConfigured ? 'default' : 'pointer',
+            transition: 'border-color 0.15s',
+          }}
+          onMouseEnter={e => !agentConfigured && (e.currentTarget.style.borderColor = 'rgba(245,158,11,0.4)')}
+          onMouseLeave={e => !agentConfigured && (e.currentTarget.style.borderColor = 'rgba(245,158,11,0.2)')}
+        >
           <div
             className={agentConfigured ? 'pulse-dot' : undefined}
             style={{ width: 8, height: 8, borderRadius: '50%', background: agentConfigured ? '#10b981' : '#f59e0b', flexShrink: 0 }}
           />
-          <div>
+          <div style={{ flex: 1 }}>
             <div style={{ fontSize: 12, fontWeight: 600, color: agentConfigured ? '#10b981' : '#f59e0b' }}>
               {agentConfigured ? 'Alex is Ready' : 'Alex'}
             </div>
             <div style={{ fontSize: 10, color: '#64748b' }}>
-              {agentConfigured ? 'AI Calling Agent • Online' : 'Webhook not configured'}
+              {agentConfigured ? 'AI Calling Agent • Online' : 'Tap to configure →'}
             </div>
           </div>
         </div>
