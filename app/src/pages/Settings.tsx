@@ -170,7 +170,7 @@ export default function Settings() {
             <input
               style={inputStyle}
               type="url"
-              placeholder="https://api.portal.vocaliq.io/webhooks/agents/..."
+              placeholder="https://api.dialora.ai/webhooks/agents/webh_.../trigger"
               value={form.b2bWebhookUrl}
               onChange={e => handleChange('b2bWebhookUrl', e.target.value)}
             />
