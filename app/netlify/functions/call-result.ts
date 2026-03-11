@@ -23,16 +23,20 @@ export const handler: Handler = async (event) => {
     return { statusCode: 400, headers: corsHeaders, body: 'Invalid JSON' };
   }
 
+  // Support both nested (direct from Dialora) and flat (from Zapier forward) field formats
+  const extractedData = (payload.extracted_data ?? payload.extractedData ?? {}) as Record<string, string>;
+  const flat = (key: string) => (extractedData[key] ?? payload[key] ?? '') as string;
+
   const contactId = (payload.contactId ?? payload.contact_id ?? payload.custom_field_1 ?? '') as string;
   const campaignId = (payload.campaignId ?? payload.campaign_id ?? payload.custom_field_2 ?? '') as string;
   const phone = (payload.phone ?? '') as string;
+  const prospectName = flat('customer_name') || (payload.name as string ?? '');
+  const email = flat('email') || '';
 
-  if (!contactId && !phone) {
-    return { statusCode: 400, headers: corsHeaders, body: 'contactId or phone required' };
+  // Accept if we have any identifier: contactId, phone, email, or name
+  if (!contactId && !phone && !email && !prospectName) {
+    return { statusCode: 400, headers: corsHeaders, body: 'contactId, phone, email, or customer_name required' };
   }
-
-  // Extract Dialora extracted data fields (from Extract Data JSON config)
-  const extractedData = (payload.extracted_data ?? payload.extractedData ?? {}) as Record<string, string>;
 
   const result = {
     contactId,
@@ -42,24 +46,23 @@ export const handler: Handler = async (event) => {
     duration: (payload.duration ?? payload.call_duration ?? null) as number | null,
     recordingUrl: (payload.recording_url ?? payload.recordingUrl ?? null) as string | null,
     transcript: (payload.transcript ?? payload.transcription ?? null) as string | null,
-    leadStatus: (payload.lead_status ?? payload.outcome ?? payload.disposition ?? extractedData.interest_level ?? null) as string | null,
-    summary: (payload.summary ?? payload.call_summary ?? extractedData.call_summary ?? null) as string | null,
+    leadStatus: (flat('interest_level') || payload.lead_status || payload.outcome || payload.disposition || null) as string | null,
+    summary: (flat('call_summary') || payload.summary || null) as string | null,
     receivedAt: new Date().toISOString(),
-    // Extended fields from Dialora Extract Data
-    prospectName: (extractedData.customer_name ?? payload.name ?? '') as string,
-    companyName: (extractedData.company_name ?? payload.company ?? '') as string,
-    jobTitle: (extractedData.job_title ?? '') as string,
-    employeeCount: (extractedData.employee_count ?? '') as string,
-    email: (extractedData.email ?? payload.email ?? '') as string,
-    meetingDate: (extractedData.meeting_date ?? '') as string,
-    meetingDescription: (extractedData.meeting_day_description ?? '') as string,
-    objections: (extractedData.objections_raised ?? '') as string,
-    followUpAction: (extractedData.follow_up_action ?? '') as string,
+    prospectName,
+    companyName: flat('company_name') || (payload.company as string ?? ''),
+    jobTitle: flat('job_title'),
+    employeeCount: flat('employee_count'),
+    email,
+    meetingDate: flat('meeting_date') || flat('meeting_start'),
+    meetingDescription: flat('meeting_day_description'),
+    objections: flat('objections_raised'),
+    followUpAction: flat('follow_up_action'),
   };
 
   try {
     const store = getStore('call-results');
-    const key = contactId || phone.replace(/\D/g, '');
+    const key = contactId || (phone ? phone.replace(/\D/g, '') : '') || email || `lead-${Date.now()}`;
     await store.setJSON(key, result);
 
     if (campaignId) {
