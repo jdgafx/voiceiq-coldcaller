@@ -54,7 +54,16 @@ export const handler: Handler = async (event) => {
     jobTitle: flat('job_title'),
     employeeCount: flat('employee_count'),
     email,
-    meetingDate: flat('meeting_date') || flat('meeting_start'),
+    meetingStart: flat('meeting_date') || flat('meeting_start'),
+    meetingEnd: (() => {
+      const start = flat('meeting_date') || flat('meeting_start');
+      if (!start) return '';
+      const d = new Date(start);
+      if (isNaN(d.getTime())) return '';
+      d.setMinutes(d.getMinutes() + 20);
+      const pad = (n: number) => String(n).padStart(2, '0');
+      return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
+    })(),
     meetingDescription: flat('meeting_day_description'),
     objections: flat('objections_raised'),
     followUpAction: flat('follow_up_action'),
@@ -89,6 +98,6 @@ export const handler: Handler = async (event) => {
   return {
     statusCode: 200,
     headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-    body: JSON.stringify({ ok: true }),
+    body: JSON.stringify({ ok: true, ...result }),
   };
 };
