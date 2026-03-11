@@ -98,40 +98,106 @@ export default function Sidebar() {
           textDecoration: 'none',
         }}
       >
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 6 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+          {/* Logo Mark */}
           <div style={{
-            width: 36,
-            height: 36,
-            borderRadius: 10,
-            background: 'linear-gradient(145deg, #162d50, #0b1a30)',
-            boxShadow: '0 2px 12px rgba(59,130,246,0.15), inset 0 1px 0 rgba(255,255,255,0.06)',
+            width: 40,
+            height: 40,
+            borderRadius: 12,
+            background: 'linear-gradient(160deg, #0f2847 0%, #071526 60%, #0c1f3a 100%)',
+            boxShadow: '0 0 0 1px rgba(56,189,248,0.12), 0 4px 14px rgba(0,0,0,0.5), 0 0 28px rgba(59,130,246,0.07)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
             flexShrink: 0,
+            position: 'relative' as const,
+            overflow: 'hidden',
           }}>
-            <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+            {/* Top highlight for depth */}
+            <div style={{
+              position: 'absolute' as const,
+              top: 0, left: 0, right: 0, height: '50%',
+              borderRadius: '12px 12px 0 0',
+              background: 'linear-gradient(180deg, rgba(255,255,255,0.04) 0%, transparent 100%)',
+              pointerEvents: 'none' as const,
+            }} />
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" style={{ position: 'relative' as const, zIndex: 1 }}>
               <defs>
-                <linearGradient id="viq-g" x1="10" y1="2" x2="10" y2="18" gradientUnits="userSpaceOnUse">
-                  <stop stopColor="#60a5fa" />
-                  <stop offset="1" stopColor="#2dd4bf" />
+                <linearGradient id="viq-pulse" x1="2" y1="12" x2="22" y2="12" gradientUnits="userSpaceOnUse">
+                  <stop stopColor="#3b82f6" />
+                  <stop offset="0.45" stopColor="#60a5fa" />
+                  <stop offset="1" stopColor="#22d3ee" />
                 </linearGradient>
+                <filter id="viq-glow">
+                  <feGaussianBlur stdDeviation="0.7" result="blur" />
+                  <feMerge>
+                    <feMergeNode in="blur" />
+                    <feMergeNode in="SourceGraphic" />
+                  </feMerge>
+                </filter>
               </defs>
-              <rect x="1.5" y="5.5" width="2.4" height="9" rx="1.2" fill="url(#viq-g)" opacity="0.85" />
-              <rect x="5.3" y="2.5" width="2.4" height="15" rx="1.2" fill="url(#viq-g)" />
-              <rect x="8.8" y="7" width="2.4" height="6" rx="1.2" fill="url(#viq-g)" opacity="0.65" />
-              <rect x="12.3" y="2.5" width="2.4" height="15" rx="1.2" fill="url(#viq-g)" />
-              <rect x="16.1" y="5.5" width="2.4" height="9" rx="1.2" fill="url(#viq-g)" opacity="0.85" />
+              {/* Voice pulse waveform */}
+              <g filter="url(#viq-glow)">
+                <path
+                  d="M2 12 L6 12 L8 8 L10 16 L12 4.5 L14 19.5 L16 8 L18 12 L22 12"
+                  stroke="url(#viq-pulse)"
+                  strokeWidth="1.8"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  fill="none"
+                />
+              </g>
+              {/* Signal dot at peak */}
+              <circle cx="12" cy="4.5" r="1.3" fill="#60a5fa" opacity="0.5" />
             </svg>
           </div>
-          <div style={{ display: 'flex', alignItems: 'baseline' }}>
-            <span style={{ fontSize: 19, fontWeight: 300, color: '#e2e8f0', letterSpacing: '-0.3px' }}>Voice</span>
-            <span style={{ fontSize: 19, fontWeight: 800, color: '#60a5fa', letterSpacing: '-0.3px' }}>IQ</span>
+          {/* Brand Name */}
+          <div>
+            <div style={{ display: 'flex', alignItems: 'baseline', gap: 1 }}>
+              <span style={{
+                fontSize: 20,
+                fontWeight: 300,
+                color: '#94a3b8',
+                letterSpacing: '0.5px',
+              }}>Voice</span>
+              <span style={{
+                fontSize: 20,
+                fontWeight: 800,
+                background: 'linear-gradient(135deg, #60a5fa 0%, #22d3ee 100%)',
+                WebkitBackgroundClip: 'text',
+                WebkitTextFillColor: 'transparent',
+                letterSpacing: '-0.5px',
+              }}>IQ</span>
+            </div>
+            <div style={{
+              fontSize: 9,
+              color: '#475569',
+              letterSpacing: '1.2px',
+              textTransform: 'uppercase' as const,
+              fontWeight: 500,
+              marginTop: 2,
+            }}>
+              AI Cold Calling
+            </div>
           </div>
         </div>
-        <p style={{ margin: 0, fontSize: 10, color: '#64748b', lineHeight: 1.4, paddingLeft: 42 }}>
-          Combined Insurance • Chubb<br />Cold Call Playbook
-        </p>
+        <div style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: 6,
+          paddingLeft: 52,
+          marginTop: 6,
+        }}>
+          <div style={{
+            width: 14,
+            height: 1,
+            background: 'linear-gradient(90deg, rgba(59,130,246,0.4), transparent)',
+            borderRadius: 1,
+          }} />
+          <span style={{ fontSize: 9, color: '#334155', fontWeight: 500, letterSpacing: '0.3px' }}>
+            Combined Insurance &bull; Chubb
+          </span>
+        </div>
       </NavLink>
 
       <nav style={{ flex: 1, padding: '12px 10px', overflowY: 'auto' }}>
