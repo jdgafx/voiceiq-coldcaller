@@ -238,12 +238,12 @@ export default function Pipeline() {
           </button>
         </div>
       ) : (
-        <div style={{ display: 'flex', gap: 14, overflowX: 'auto', paddingBottom: 16, minHeight: 400 }}>
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 14, paddingBottom: 16 }}>
           {COLUMNS.map(col => {
             const cards = grouped[col.status] ?? [];
             const ColIcon = col.Icon;
             return (
-              <div key={col.status} style={{ minWidth: 230, maxWidth: 230, flexShrink: 0 }}>
+              <div key={col.status} style={{ flex: '1 1 220px', maxWidth: 280, minWidth: 200 }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 7, padding: '10px 12px', background: col.bg, border: `1px solid ${col.color}25`, borderRadius: '10px 10px 0 0', marginBottom: 0 }}>
                   <ColIcon size={13} color={col.color} />
                   <span style={{ fontSize: 11, fontWeight: 800, color: col.color, textTransform: 'uppercase', letterSpacing: '0.07em' }}>{col.label}</span>
