@@ -157,13 +157,15 @@ export default function Settings() {
 
       {/* ─── WEBHOOK ────────────────────────────────────────────────────── */}
       <div style={card}>
-        <h2 style={{ margin: '0 0 16px', fontSize: 15, fontWeight: 700, color: '#e2e8f0' }}>Dialora AI Webhook</h2>
+        <h2 style={{ margin: '0 0 16px', fontSize: 15, fontWeight: 700, color: '#e2e8f0' }}>Dialora Agent Connection</h2>
         <p style={{ margin: '0 0 20px', fontSize: 13, color: '#64748b', lineHeight: 1.5 }}>
-          Your Dialora agent's webhook trigger URL. Calls are routed through a secure server-side proxy.
+          This URL connects VoiceIQ to your Dialora agent so campaigns can trigger outbound calls. Find it in{' '}
+          <a href="https://app.dialora.ai" target="_blank" rel="noopener noreferrer" style={{ color: '#60a5fa', textDecoration: 'none' }}>Dialora</a>
+          {' '}→ Agent → Integrations → Webhook URL.
         </p>
 
         <div>
-          <label style={labelStyle}>B2B Agent Webhook URL</label>
+          <label style={labelStyle}>Dialora Webhook URL</label>
           <div style={{ display: 'flex', gap: 10 }}>
             <input
               style={inputStyle}
