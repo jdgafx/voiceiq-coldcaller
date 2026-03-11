@@ -160,7 +160,7 @@ export default function Settings() {
         <h2 style={{ margin: '0 0 16px', fontSize: 15, fontWeight: 700, color: '#e2e8f0' }}>Dialora Agent Connection</h2>
         <p style={{ margin: '0 0 20px', fontSize: 13, color: '#64748b', lineHeight: 1.5 }}>
           This URL connects VoiceIQ to your Dialora agent so campaigns can trigger outbound calls. Find it in{' '}
-          <a href="https://portal.vocaliq.io" target="_blank" rel="noopener noreferrer" style={{ color: '#60a5fa', textDecoration: 'none' }}>your Dialora portal</a>
+          <a href="https://app.dialora.ai" target="_blank" rel="noopener noreferrer" style={{ color: '#60a5fa', textDecoration: 'none' }}>Dialora</a>
           {' '}→ Agent → Advanced Settings → Call Management.
         </p>
 
@@ -170,7 +170,7 @@ export default function Settings() {
             <input
               style={inputStyle}
               type="url"
-              placeholder="https://api.portal.vocaliq.io/webhooks/agents/webh_.../trigger"
+              placeholder="https://api.dialora.ai/webhooks/agents/webh_.../trigger"
               value={form.b2bWebhookUrl}
               onChange={e => handleChange('b2bWebhookUrl', e.target.value)}
             />
