@@ -54,7 +54,17 @@ export interface CallResult {
   duration?: number;
   recordingUrl?: string;
   transcript?: string;
-  leadStatus?: LeadStatus;
+  leadStatus?: string;
   summary?: string;
   receivedAt: string;
+  prospectName?: string;
+  companyName?: string;
+  jobTitle?: string;
+  employeeCount?: string;
+  email?: string;
+  meetingStart?: string;
+  meetingEnd?: string;
+  meetingDescription?: string;
+  objections?: string;
+  followUpAction?: string;
 }

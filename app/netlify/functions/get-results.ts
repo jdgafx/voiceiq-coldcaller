@@ -20,8 +20,10 @@ export const handler: Handler = async (event) => {
   const ids = params.ids ? params.ids.split(',').filter(Boolean) : [];
   const campaignId = params.campaignId ?? '';
 
-  if (!ids.length && !campaignId) {
-    return { statusCode: 400, headers: corsHeaders, body: 'ids or campaignId required' };
+  const listAll = params.all === 'true';
+
+  if (!listAll && !ids.length && !campaignId) {
+    return { statusCode: 400, headers: corsHeaders, body: 'ids, campaignId, or all=true required' };
   }
 
   try {
@@ -30,6 +32,20 @@ export const handler: Handler = async (event) => {
     const store = siteID && token
       ? getStore({ name: 'call-results', siteID, token })
       : getStore('call-results');
+
+    if (listAll) {
+      const { blobs } = await store.list();
+      const entries = blobs.filter(b => !b.key.startsWith('campaign:'));
+      const results = await Promise.all(
+        entries.slice(0, 200).map(b => store.get(b.key, { type: 'json' }).catch(() => null))
+      );
+      return {
+        statusCode: 200,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        body: JSON.stringify(results.filter(Boolean)),
+      };
+    }
+
     let lookupIds = [...ids];
 
     if (campaignId && !lookupIds.length) {

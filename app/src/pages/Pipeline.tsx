@@ -13,6 +13,13 @@ const COLUMNS: { status: LeadStatus | 'unqualified'; label: string; color: strin
   { status: 'unqualified',   label: 'UNCATEGORIZED', color: '#64748b', bg: 'rgba(100,116,139,0.08)', Icon: HelpCircle },
 ];
 
+const VALID_STATUSES = new Set<LeadStatus>(['hot', 'warm', 'cold', 'not_interested', 'callback', 'voicemail', 'unqualified']);
+function normalizeLeadStatus(raw?: string | null): LeadStatus {
+  if (!raw) return 'unqualified';
+  const lower = raw.toLowerCase().replace(/[\s-]/g, '_') as LeadStatus;
+  return VALID_STATUSES.has(lower) ? lower : 'unqualified';
+}
+
 interface EnrichedContact extends Contact {
   campaignId: string;
   campaignName: string;
@@ -114,10 +121,8 @@ function ContactCard({ contact, onStatusChange }: { contact: EnrichedContact; on
   );
 }
 
-function fetchServerResults(contacts: EnrichedContact[], onDone: (results: CallResult[]) => void) {
-  const ids = contacts.map(c => c.id).join(',');
-  if (!ids) return;
-  fetch(`/api/get-results?ids=${ids}`)
+function fetchServerResults(_contacts: EnrichedContact[], onDone: (results: CallResult[]) => void) {
+  fetch('/.netlify/functions/get-results?all=true')
     .then(r => r.ok ? r.json() : [])
     .then(results => onDone(results as CallResult[]))
     .catch(() => onDone([]));
@@ -134,17 +139,39 @@ export default function Pipeline() {
 
   const syncServerResults = useCallback(() => {
     setSyncing(true);
-    const all = allContacts();
-    fetchServerResults(all, (results) => {
+    const local = allContacts();
+    fetchServerResults(local, (results) => {
+      const localIds = new Set(local.map(c => c.id));
       results.forEach(r => {
-        if (!r.contactId) return;
-        updateContactLeadStatus(r.campaignId, r.contactId, (r.leadStatus as LeadStatus) ?? 'unqualified', {
+        if (r.contactId && localIds.has(r.contactId)) {
+          updateContactLeadStatus(r.campaignId, r.contactId, (r.leadStatus as LeadStatus) ?? 'unqualified', {
+            recordingUrl: r.recordingUrl ?? undefined,
+            transcript: r.transcript ?? undefined,
+            callDuration: r.duration ?? undefined,
+          });
+        }
+      });
+      const refreshed = allContacts();
+      const refreshedIds = new Set(refreshed.map(c => c.id));
+      const serverOnly: EnrichedContact[] = results
+        .filter(r => !r.contactId || !refreshedIds.has(r.contactId))
+        .map(r => ({
+          id: r.contactId || r.email || `server-${r.receivedAt}`,
+          name: r.prospectName || 'Unknown',
+          phone: r.phone || '',
+          email: r.email || undefined,
+          company: r.companyName || undefined,
+          status: 'completed' as const,
+          leadStatus: normalizeLeadStatus(r.leadStatus),
+          calledAt: r.receivedAt,
           recordingUrl: r.recordingUrl ?? undefined,
           transcript: r.transcript ?? undefined,
           callDuration: r.duration ?? undefined,
-        });
-      });
-      setContacts(allContacts());
+          campaignId: r.campaignId || 'webhook',
+          campaignName: r.campaignId ? `Campaign ${r.campaignId}` : 'Zapier Webhook',
+          campaignType: 'b2b' as const,
+        }));
+      setContacts([...refreshed, ...serverOnly]);
       setLastSync(new Date());
       setSyncing(false);
     });
