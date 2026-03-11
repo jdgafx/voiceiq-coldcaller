@@ -159,9 +159,9 @@ export default function Settings() {
       <div style={card}>
         <h2 style={{ margin: '0 0 16px', fontSize: 15, fontWeight: 700, color: '#e2e8f0' }}>Dialora Agent Connection</h2>
         <p style={{ margin: '0 0 20px', fontSize: 13, color: '#64748b', lineHeight: 1.5 }}>
-          This URL connects VoiceIQ to your Dialora agent so campaigns can trigger outbound calls. Find it in{' '}
-          <a href="https://app.dialora.ai" target="_blank" rel="noopener noreferrer" style={{ color: '#60a5fa', textDecoration: 'none' }}>Dialora</a>
-          {' '}→ Agent → Integrations → Webhook URL.
+          This URL connects VoiceIQ to your Dialora agent so campaigns can trigger outbound calls. It's a Dialora API endpoint provided during agent setup — contact{' '}
+          <a href="https://app.dialora.ai" target="_blank" rel="noopener noreferrer" style={{ color: '#60a5fa', textDecoration: 'none' }}>Dialora support</a>
+          {' '}if you need to regenerate it.
         </p>
 
         <div>
