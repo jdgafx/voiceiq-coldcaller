@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Phone,
@@ -43,27 +43,44 @@ function getRelativeTime(isoDate: string): string {
 export default function Dashboard() {
   const navigate = useNavigate();
   const [intelligenceOpen, setIntelligenceOpen] = useState(false);
+  const [serverResults, setServerResults] = useState<{ leadStatus?: string; receivedAt: string; prospectName?: string; companyName?: string; phone?: string }[]>([]);
+
+  useEffect(() => {
+    fetch('/.netlify/functions/get-results?all=true')
+      .then(r => r.ok ? r.json() : [])
+      .then(results => setServerResults(results))
+      .catch(() => {});
+  }, []);
 
   const campaigns = getCampaigns();
   const settings = getSettings();
 
   const totalCampaigns = campaigns.length;
   const runningCount = campaigns.filter(c => c.status === 'running').length;
-  const totalCallsMade = campaigns.reduce((sum, c) => sum + (c.callsSent ?? 0), 0);
+  const localCallsMade = campaigns.reduce((sum, c) => sum + (c.callsSent ?? 0), 0);
+  const totalCallsMade = Math.max(localCallsMade, serverResults.length);
 
   const allContacts = campaigns.flatMap(c => c.contacts);
-  const hotCount = allContacts.filter(ct => ct.leadStatus === 'hot').length;
-  const warmCount = allContacts.filter(ct => ct.leadStatus === 'warm').length;
-  const completedContacts = allContacts.filter(
-    ct => ct.status === 'completed' || ct.status === 'failed',
-  );
+  const localHot = allContacts.filter(ct => ct.leadStatus === 'hot').length;
+  const localWarm = allContacts.filter(ct => ct.leadStatus === 'warm').length;
+
+  const serverHot = serverResults.filter(r => r.leadStatus?.toLowerCase() === 'hot').length;
+  const serverWarm = serverResults.filter(r => r.leadStatus?.toLowerCase() === 'warm').length;
+
+  const hotCount = Math.max(localHot, serverHot);
+  const warmCount = Math.max(localWarm, serverWarm);
+
+  const totalResults = Math.max(allContacts.filter(ct => ct.status === 'completed' || ct.status === 'failed').length, serverResults.length);
   const conversionRate =
-    completedContacts.length > 0
-      ? ((hotCount + warmCount) / completedContacts.length * 100).toFixed(1)
+    totalResults > 0
+      ? ((hotCount + warmCount) / totalResults * 100).toFixed(1)
       : '0.0';
 
-  const recentCalls = campaigns
-    .flatMap(c => c.contacts.filter(ct => !!ct.calledAt))
+  const localCalls = campaigns.flatMap(c => c.contacts.filter(ct => !!ct.calledAt));
+  const serverCalls = serverResults
+    .filter(r => !!r.receivedAt)
+    .map(r => ({ name: r.prospectName || 'Unknown', company: r.companyName, phone: r.phone || '', calledAt: r.receivedAt, leadStatus: r.leadStatus?.toLowerCase() }));
+  const recentCalls = [...localCalls, ...serverCalls]
     .sort((a, b) => new Date(b.calledAt!).getTime() - new Date(a.calledAt!).getTime())
     .slice(0, 8);
 
@@ -243,9 +260,9 @@ export default function Dashboard() {
             </div>
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
-              {recentCalls.map(ct => (
+              {recentCalls.map((ct, idx) => (
                 <div
-                  key={ct.id}
+                  key={'id' in ct ? ct.id : `server-${idx}`}
                   style={{
                     display: 'flex', alignItems: 'center', justifyContent: 'space-between',
                     padding: '9px 0',

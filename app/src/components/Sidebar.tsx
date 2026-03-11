@@ -6,6 +6,7 @@ import {
   Building2, MessageSquareWarning, Package, Target, ShieldCheck,
   Settings, BookOpen, ChevronRight, ChevronDown,
 } from 'lucide-react';
+import { getSettings } from '../data/store';
 
 interface NavItem {
   to: string;
@@ -68,6 +69,8 @@ export default function Sidebar() {
   const location = useLocation();
   const isPlaybookActive = PLAYBOOK_ROUTES.includes(location.pathname);
   const [playbookOpen, setPlaybookOpen] = useState(isPlaybookActive);
+  const settings = getSettings();
+  const agentConfigured = !!settings.b2bWebhookUrl;
 
   useEffect(() => {
     if (PLAYBOOK_ROUTES.includes(location.pathname)) {
@@ -298,8 +301,8 @@ export default function Sidebar() {
         </NavLink>
 
         <div style={{
-          background: 'rgba(16,185,129,0.08)',
-          border: '1px solid rgba(16,185,129,0.2)',
+          background: agentConfigured ? 'rgba(16,185,129,0.08)' : 'rgba(245,158,11,0.08)',
+          border: `1px solid ${agentConfigured ? 'rgba(16,185,129,0.2)' : 'rgba(245,158,11,0.2)'}`,
           borderRadius: 8,
           padding: '10px 12px',
           display: 'flex',
@@ -307,12 +310,16 @@ export default function Sidebar() {
           gap: 8,
         }}>
           <div
-            className="pulse-dot"
-            style={{ width: 8, height: 8, borderRadius: '50%', background: '#10b981', flexShrink: 0 }}
+            className={agentConfigured ? 'pulse-dot' : undefined}
+            style={{ width: 8, height: 8, borderRadius: '50%', background: agentConfigured ? '#10b981' : '#f59e0b', flexShrink: 0 }}
           />
           <div>
-            <div style={{ fontSize: 12, fontWeight: 600, color: '#10b981' }}>Alex is Ready</div>
-            <div style={{ fontSize: 10, color: '#64748b' }}>AI Calling Agent • Online</div>
+            <div style={{ fontSize: 12, fontWeight: 600, color: agentConfigured ? '#10b981' : '#f59e0b' }}>
+              {agentConfigured ? 'Alex is Ready' : 'Alex'}
+            </div>
+            <div style={{ fontSize: 10, color: '#64748b' }}>
+              {agentConfigured ? 'AI Calling Agent • Online' : 'Webhook not configured'}
+            </div>
           </div>
         </div>
 
