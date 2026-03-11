@@ -71,30 +71,43 @@ export const handler: Handler = async (event) => {
       }
     }
 
-    // Auto-create Google Calendar meeting for HOT/WARM/CALLBACK leads with a meeting date
-    const leadUpper = (result.leadStatus || '').toUpperCase();
-    const shouldBook = ['HOT', 'WARM', 'CALLBACK'].includes(leadUpper) && result.meetingDate;
-
-    if (shouldBook) {
+    // Forward to Zapier webhook for Google Calendar + Gmail notification
+    const zapierUrl = process.env.ZAPIER_WEBHOOK_URL;
+    if (zapierUrl) {
       try {
-        // Determine host for internal function call
-        const host = event.headers?.host || 'voiceiq-coldcaller.netlify.app';
-        const proto = host.includes('localhost') ? 'http' : 'https';
+        // Calculate meeting_end (+20 min) from meeting_date
+        let meetingStart = result.meetingDate;
+        let meetingEnd = '';
+        if (meetingStart) {
+          const startDate = new Date(meetingStart);
+          if (!isNaN(startDate.getTime())) {
+            meetingEnd = new Date(startDate.getTime() + 20 * 60 * 1000).toISOString().slice(0, 19);
+            meetingStart = startDate.toISOString().slice(0, 19);
+          }
+        }
 
-        await fetch(`${proto}://${host}/api/create-meeting`, {
+        await fetch(zapierUrl, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            prospectName: result.prospectName || 'Prospect',
-            prospectEmail: result.email || undefined,
-            companyName: result.companyName || undefined,
-            meetingDate: result.meetingDate,
-            summary: result.summary || undefined,
+            customer_name: result.prospectName,
+            company_name: result.companyName,
+            job_title: result.jobTitle,
+            employee_count: result.employeeCount,
+            email: result.email,
+            interest_level: (result.leadStatus || '').toUpperCase(),
+            meeting_start: meetingStart,
+            meeting_end: meetingEnd,
+            meeting_day_description: result.meetingDescription,
+            objections_raised: result.objections,
+            call_summary: result.summary,
+            follow_up_action: result.followUpAction,
+            phone: result.phone,
+            recording_url: result.recordingUrl,
           }),
         });
-        // Fire-and-forget — don't fail the call result if calendar creation fails
       } catch {
-        // Calendar creation failed — not critical, call result is still stored
+        // Zapier forward failed — not critical, call result is still stored
       }
     }
   } catch (err: unknown) {

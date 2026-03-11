@@ -43,6 +43,7 @@ export interface AppSettings {
   googleCalendarConnected?: boolean;
   googleClientId?: string;
   googleClientSecret?: string;
+  zapierWebhookUrl?: string;
 }
 
 export interface CallResult {

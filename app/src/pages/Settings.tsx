@@ -291,6 +291,36 @@ export default function Settings() {
         </div>
       </div>
 
+      {/* ─── ZAPIER AUTOMATION ──────────────────────────────────────────── */}
+      <div style={card}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16 }}>
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" stroke="#f59e0b" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
+          <h2 style={{ margin: 0, fontSize: 15, fontWeight: 700, color: '#e2e8f0' }}>Zapier Automation</h2>
+        </div>
+        <p style={{ margin: '0 0 20px', fontSize: 13, color: '#64748b', lineHeight: 1.5 }}>
+          When a call completes, VoiceIQ forwards the lead data to Zapier which creates a Google Calendar event with Meet link and sends an email notification.
+        </p>
+
+        <div>
+          <label style={labelStyle}>Zapier Webhook URL</label>
+          <input
+            style={inputStyle}
+            type="url"
+            placeholder="https://hooks.zapier.com/hooks/catch/..."
+            value={form.zapierWebhookUrl || ''}
+            onChange={e => handleChange('zapierWebhookUrl', e.target.value)}
+          />
+          <p style={hintStyle}>From Zapier: Webhooks by Zapier → Catch Hook trigger. Handles calendar events, Meet links, and email notifications.</p>
+        </div>
+
+        <div style={{ background: 'rgba(245,158,11,0.06)', border: '1px solid rgba(245,158,11,0.15)', borderRadius: 8, padding: '12px 16px', marginTop: 16 }}>
+          <div style={{ fontSize: 11, fontWeight: 700, color: '#f59e0b', marginBottom: 6 }}>ZAPIER ZAP FLOW</div>
+          <div style={{ fontSize: 12, color: '#fbbf24', lineHeight: 1.6 }}>
+            Catch Hook → Google Calendar (Create Detailed Event + Meet) → Gmail (Send lead notification email)
+          </div>
+        </div>
+      </div>
+
       {/* ─── CALLING DEFAULTS ───────────────────────────────────────────── */}
       <div style={card}>
         <h2 style={{ margin: '0 0 16px', fontSize: 15, fontWeight: 700, color: '#e2e8f0' }}>Calling Defaults</h2>
