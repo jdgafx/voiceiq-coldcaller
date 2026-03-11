@@ -623,7 +623,7 @@ function StepConnect({
               type="text"
               value={webhookUrl}
               onChange={e => setWebhookUrl(e.target.value)}
-              placeholder="https://api.portal.vocaliq.io/webhooks/agents/..."
+              placeholder="https://api.dialora.ai/webhooks/agents/webh_.../trigger"
               style={{ width: '100%', boxSizing: 'border-box', padding: '12px 14px 12px 34px', background: '#0d0d14', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 10, color: '#f1f5f9', fontSize: 13, fontFamily: 'ui-monospace, monospace', outline: 'none' }}
             />
           </div>
