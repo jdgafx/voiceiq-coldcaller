@@ -71,45 +71,9 @@ export const handler: Handler = async (event) => {
       }
     }
 
-    // Forward to Zapier webhook for Google Calendar + Gmail notification
-    const zapierUrl = process.env.ZAPIER_WEBHOOK_URL;
-    if (zapierUrl) {
-      try {
-        // Calculate meeting_end (+20 min) from meeting_date
-        let meetingStart = result.meetingDate;
-        let meetingEnd = '';
-        if (meetingStart) {
-          const startDate = new Date(meetingStart);
-          if (!isNaN(startDate.getTime())) {
-            meetingEnd = new Date(startDate.getTime() + 20 * 60 * 1000).toISOString().slice(0, 19);
-            meetingStart = startDate.toISOString().slice(0, 19);
-          }
-        }
-
-        await fetch(zapierUrl, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            customer_name: result.prospectName,
-            company_name: result.companyName,
-            job_title: result.jobTitle,
-            employee_count: result.employeeCount,
-            email: result.email,
-            interest_level: (result.leadStatus || '').toUpperCase(),
-            meeting_start: meetingStart,
-            meeting_end: meetingEnd,
-            meeting_day_description: result.meetingDescription,
-            objections_raised: result.objections,
-            call_summary: result.summary,
-            follow_up_action: result.followUpAction,
-            phone: result.phone,
-            recording_url: result.recordingUrl,
-          }),
-        });
-      } catch {
-        // Zapier forward failed — not critical, call result is still stored
-      }
-    }
+    // Note: Zapier receives data directly from Dialora via the Zapier connector,
+    // then forwards a copy here for dashboard storage. Zapier handles
+    // Google Calendar (with Meet) and Gmail notifications.
   } catch (err: unknown) {
     const msg = err instanceof Error ? err.message : 'Storage error';
     return { statusCode: 502, headers: corsHeaders, body: JSON.stringify({ error: msg }) };
