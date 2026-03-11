@@ -61,7 +61,11 @@ export const handler: Handler = async (event) => {
   };
 
   try {
-    const store = getStore('call-results');
+    const siteID = process.env.BLOB_SITE_ID ?? process.env.SITE_ID ?? '';
+    const token = process.env.BLOB_TOKEN ?? '';
+    const store = siteID && token
+      ? getStore({ name: 'call-results', siteID, token })
+      : getStore('call-results');
     const key = contactId || (phone ? phone.replace(/\D/g, '') : '') || email || `lead-${Date.now()}`;
     await store.setJSON(key, result);
 
