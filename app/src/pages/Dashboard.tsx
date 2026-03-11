@@ -213,33 +213,33 @@ export default function Dashboard() {
             )}
           </div>
 
-          {/* Calendar integration status */}
+          {/* Zapier automation status */}
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 0' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
               <div style={{
                 width: 8, height: 8, borderRadius: '50%',
-                background: settings.googleCalendarConnected ? '#22c55e' : '#f59e0b',
-                boxShadow: settings.googleCalendarConnected ? '0 0 8px #22c55e88' : '0 0 8px #f59e0b88',
+                background: settings.zapierWebhookUrl ? '#22c55e' : '#f59e0b',
+                boxShadow: settings.zapierWebhookUrl ? '0 0 8px #22c55e88' : '0 0 8px #f59e0b88',
               }} />
               <div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, color: '#e2e8f0', fontWeight: 500 }}>
-                  Google Calendar
-                  {settings.googleCalendarConnected
+                  Zapier + Calendar
+                  {settings.zapierWebhookUrl
                     ? <CheckCircle2 size={12} color="#22c55e" />
                     : <AlertCircle size={12} color="#f59e0b" />
                   }
                 </div>
-                <div style={{ fontSize: 11, color: settings.googleCalendarConnected ? '#22c55e' : '#f59e0b', marginTop: 2 }}>
-                  {settings.googleCalendarConnected ? 'Connected' : 'Not connected'}
+                <div style={{ fontSize: 11, color: settings.zapierWebhookUrl ? '#22c55e' : '#f59e0b', marginTop: 2 }}>
+                  {settings.zapierWebhookUrl ? 'Connected' : 'Not configured'}
                 </div>
               </div>
             </div>
-            {!settings.googleCalendarConnected && (
+            {!settings.zapierWebhookUrl && (
               <button
                 onClick={() => navigate('/settings')}
                 style={{ fontSize: 11, color: '#60a5fa', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
               >
-                Connect →
+                Set up →
               </button>
             )}
           </div>
