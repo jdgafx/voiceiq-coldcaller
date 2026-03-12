@@ -520,7 +520,7 @@ function StepConnect({
     if (!webhookUrl) return;
     setTestState('loading');
     try {
-      const res = await fetch('/api/trigger-call', {
+      const res = await fetch('/.netlify/functions/trigger-call', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ webhookUrl, testOnly: true }),

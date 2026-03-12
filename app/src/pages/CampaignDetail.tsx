@@ -491,7 +491,7 @@ export default function CampaignDetail() {
         const webhookUrl = campaign.webhookUrl;
         if (!webhookUrl) throw new Error('No webhook URL configured');
 
-        const resp = await fetch('/api/trigger-call', {
+        const resp = await fetch('/.netlify/functions/trigger-call', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({

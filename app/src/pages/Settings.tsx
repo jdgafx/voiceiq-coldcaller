@@ -72,7 +72,7 @@ export default function Settings() {
     if (!url) return;
     setter('loading');
     try {
-      const resp = await fetch('/api/trigger-call', {
+      const resp = await fetch('/.netlify/functions/trigger-call', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ webhookUrl: url, testOnly: true }),
