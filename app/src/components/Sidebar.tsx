@@ -36,7 +36,7 @@ const primaryLinkStyle = ({ isActive }: { isActive: boolean }): React.CSSPropert
   display: 'flex',
   alignItems: 'center',
   gap: 10,
-  padding: '9px 12px',
+  padding: '10px 12px',
   borderRadius: 8,
   marginBottom: 2,
   textDecoration: 'none',
@@ -46,13 +46,14 @@ const primaryLinkStyle = ({ isActive }: { isActive: boolean }): React.CSSPropert
   background: isActive ? 'rgba(59,130,246,0.1)' : 'transparent',
   borderLeft: isActive ? '2px solid #3b82f6' : '2px solid transparent',
   transition: 'all 0.15s ease',
+  minHeight: 44,
 });
 
 const playbookLinkStyle = ({ isActive }: { isActive: boolean }): React.CSSProperties => ({
   display: 'flex',
   alignItems: 'center',
   gap: 10,
-  padding: '9px 12px',
+  padding: '10px 12px',
   paddingLeft: 20,
   borderRadius: 8,
   marginBottom: 2,
@@ -63,9 +64,15 @@ const playbookLinkStyle = ({ isActive }: { isActive: boolean }): React.CSSProper
   background: isActive ? 'rgba(59,130,246,0.1)' : 'transparent',
   borderLeft: isActive ? '2px solid #3b82f6' : '2px solid rgba(255,255,255,0.06)',
   transition: 'all 0.15s ease',
+  minHeight: 44,
 });
 
-export default function Sidebar() {
+interface SidebarProps {
+  onNavigate?: () => void;
+  mobileHidden?: boolean;
+}
+
+export default function Sidebar({ onNavigate, mobileHidden }: SidebarProps) {
   const location = useLocation();
   const navigate = useNavigate();
   const isPlaybookActive = PLAYBOOK_ROUTES.includes(location.pathname);
@@ -78,6 +85,10 @@ export default function Sidebar() {
       setPlaybookOpen(true);
     }
   }, [location.pathname]);
+
+  function handleNavClick() {
+    onNavigate?.();
+  }
 
   return (
     <aside style={{
@@ -92,9 +103,12 @@ export default function Sidebar() {
       top: 0,
       left: 0,
       zIndex: 50,
+      transform: mobileHidden ? 'translateX(-100%)' : 'translateX(0)',
+      transition: 'transform 0.25s ease',
     }}>
       <NavLink
         to="/"
+        onClick={handleNavClick}
         style={{
           display: 'block',
           padding: '24px 20px 20px',
@@ -117,7 +131,6 @@ export default function Sidebar() {
             position: 'relative' as const,
             overflow: 'hidden',
           }}>
-            {/* Top highlight for depth */}
             <div style={{
               position: 'absolute' as const,
               top: 0, left: 0, right: 0, height: '50%',
@@ -140,7 +153,6 @@ export default function Sidebar() {
                   </feMerge>
                 </filter>
               </defs>
-              {/* Voice pulse waveform */}
               <g filter="url(#viq-glow)">
                 <path
                   d="M2 12 L6 12 L8 8 L10 16 L12 4.5 L14 19.5 L16 8 L18 12 L22 12"
@@ -151,7 +163,6 @@ export default function Sidebar() {
                   fill="none"
                 />
               </g>
-              {/* Signal dot at peak */}
               <circle cx="12" cy="4.5" r="1.3" fill="#60a5fa" opacity="0.5" />
             </svg>
           </div>
@@ -174,8 +185,8 @@ export default function Sidebar() {
               }}>IQ</span>
             </div>
             <div style={{
-              fontSize: 9,
-              color: '#475569',
+              fontSize: 11,
+              color: '#64748b',
               letterSpacing: '1.2px',
               textTransform: 'uppercase' as const,
               fontWeight: 500,
@@ -198,7 +209,7 @@ export default function Sidebar() {
             background: 'linear-gradient(90deg, rgba(59,130,246,0.4), transparent)',
             borderRadius: 1,
           }} />
-          <span style={{ fontSize: 9, color: '#334155', fontWeight: 500, letterSpacing: '0.3px' }}>
+          <span style={{ fontSize: 11, color: '#64748b', fontWeight: 500, letterSpacing: '0.3px' }}>
             Combined Insurance &bull; Chubb
           </span>
         </div>
@@ -208,9 +219,9 @@ export default function Sidebar() {
         <div style={{
           marginBottom: 8,
           padding: '0 8px',
-          fontSize: 10,
+          fontSize: 12,
           fontWeight: 600,
-          color: '#475569',
+          color: '#64748b',
           textTransform: 'uppercase',
           letterSpacing: '0.08em',
         }}>
@@ -218,7 +229,7 @@ export default function Sidebar() {
         </div>
 
         {primaryItems.map(({ to, icon: Icon, label, end }) => (
-          <NavLink key={to} to={to} end={end} style={primaryLinkStyle}>
+          <NavLink key={to} to={to} end={end} style={primaryLinkStyle} onClick={handleNavClick}>
             <Icon size={16} />
             {label}
           </NavLink>
@@ -232,18 +243,19 @@ export default function Sidebar() {
               alignItems: 'center',
               gap: 8,
               width: '100%',
-              padding: '4px 8px',
+              padding: '8px 8px',
               background: 'none',
               border: 'none',
               cursor: 'pointer',
               marginBottom: 4,
+              minHeight: 36,
             }}
           >
-            <BookOpen size={12} color="#475569" />
+            <BookOpen size={13} color="#64748b" />
             <span style={{
-              fontSize: 10,
+              fontSize: 12,
               fontWeight: 600,
-              color: '#475569',
+              color: '#64748b',
               textTransform: 'uppercase',
               letterSpacing: '0.08em',
               flex: 1,
@@ -252,8 +264,8 @@ export default function Sidebar() {
               Playbook
             </span>
             {playbookOpen
-              ? <ChevronDown size={12} color="#475569" />
-              : <ChevronRight size={12} color="#475569" />
+              ? <ChevronDown size={12} color="#64748b" />
+              : <ChevronRight size={12} color="#64748b" />
             }
           </button>
 
@@ -267,7 +279,7 @@ export default function Sidebar() {
                 style={{ overflow: 'hidden' }}
               >
                 {playbookItems.map(({ to, icon: Icon, label }) => (
-                  <NavLink key={to} to={to} style={playbookLinkStyle}>
+                  <NavLink key={to} to={to} style={playbookLinkStyle} onClick={handleNavClick}>
                     <Icon size={16} />
                     {label}
                   </NavLink>
@@ -281,11 +293,12 @@ export default function Sidebar() {
       <div style={{ padding: '16px 20px', borderTop: '1px solid rgba(255,255,255,0.06)' }}>
         <NavLink
           to="/settings"
+          onClick={handleNavClick}
           style={({ isActive }) => ({
             display: 'flex',
             alignItems: 'center',
             gap: 8,
-            padding: '7px 10px',
+            padding: '8px 10px',
             borderRadius: 8,
             marginBottom: 12,
             textDecoration: 'none',
@@ -295,6 +308,7 @@ export default function Sidebar() {
             background: isActive ? 'rgba(59,130,246,0.1)' : 'transparent',
             borderLeft: isActive ? '2px solid #3b82f6' : '2px solid transparent',
             transition: 'all 0.15s ease',
+            minHeight: 44,
           })}
         >
           <Settings size={15} />
@@ -302,7 +316,7 @@ export default function Sidebar() {
         </NavLink>
 
         <div
-          onClick={() => !agentConfigured && navigate('/agent-setup')}
+          onClick={() => { if (!agentConfigured) { navigate('/agent-setup'); handleNavClick(); } }}
           style={{
             background: agentConfigured ? 'rgba(16,185,129,0.08)' : 'rgba(245,158,11,0.08)',
             border: `1px solid ${agentConfigured ? 'rgba(16,185,129,0.2)' : 'rgba(245,158,11,0.2)'}`,
@@ -325,13 +339,13 @@ export default function Sidebar() {
             <div style={{ fontSize: 12, fontWeight: 600, color: agentConfigured ? '#10b981' : '#f59e0b' }}>
               {agentConfigured ? 'Alex is Ready' : 'Alex'}
             </div>
-            <div style={{ fontSize: 10, color: '#64748b' }}>
+            <div style={{ fontSize: 12, color: '#64748b' }}>
               {agentConfigured ? 'AI Calling Agent • Online' : 'Tap to configure →'}
             </div>
           </div>
         </div>
 
-        <p style={{ margin: '12px 0 0', fontSize: 10, color: '#334155', textAlign: 'center' }}>
+        <p style={{ margin: '12px 0 0', fontSize: 12, color: '#475569', textAlign: 'center' }}>
           A+ AM Best • 100+ Years • 54 Countries
         </p>
       </div>

@@ -76,16 +76,16 @@ function ContactCard({ contact, onStatusChange }: { contact: EnrichedContact; on
         </span>
       </div>
 
-      <div style={{ fontSize: 11, color: '#475569', fontFamily: 'monospace', marginBottom: 8 }}>{contact.phone}</div>
+      <div style={{ fontSize: 12, color: '#64748b', fontFamily: 'monospace', marginBottom: 8 }}>{contact.phone}</div>
 
       {contact.calledAt && (
-        <div style={{ fontSize: 11, color: '#475569', marginBottom: 8 }}>
+        <div style={{ fontSize: 12, color: '#64748b', marginBottom: 8 }}>
           {new Date(contact.calledAt).toLocaleDateString()} {new Date(contact.calledAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
           {contact.callDuration && <span style={{ marginLeft: 6 }}>· {Math.round(contact.callDuration / 60)}m {contact.callDuration % 60}s</span>}
         </div>
       )}
 
-      <div style={{ fontSize: 10, color: '#475569', marginBottom: 10, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{contact.campaignName}</div>
+      <div style={{ fontSize: 12, color: '#64748b', marginBottom: 10, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{contact.campaignName}</div>
 
       {(contact.recordingUrl || contact.transcript) && (
         <div style={{ borderTop: '1px solid rgba(255,255,255,0.05)', paddingTop: 8, marginBottom: 8 }}>
@@ -113,7 +113,7 @@ function ContactCard({ contact, onStatusChange }: { contact: EnrichedContact; on
       <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
         {COLUMNS.filter(c => c.status !== cfg.status && c.status !== 'unqualified').slice(0, 4).map(col => (
           <button key={col.status} onClick={() => moveTo(col.status as LeadStatus)}
-            style={{ fontSize: 9, fontWeight: 700, padding: '3px 7px', borderRadius: 4, background: `${col.color}14`, border: `1px solid ${col.color}25`, color: col.color, cursor: 'pointer', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+            style={{ fontSize: 10, fontWeight: 700, padding: '3px 7px', borderRadius: 4, background: col.color, border: 'none', color: '#fff', cursor: 'pointer', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
             {col.label}
           </button>
         ))}

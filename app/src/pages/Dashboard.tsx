@@ -85,7 +85,7 @@ export default function Dashboard() {
     .slice(0, 8);
 
   return (
-    <div style={{ maxWidth: 1100, margin: '0 auto', padding: '32px 40px' }} className="fade-in-up">
+    <div style={{ maxWidth: 1100, margin: '0 auto', padding: '32px 24px' }} className="fade-in-up dashboard-page">
       <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 36 }}>
         <div>
           <div style={{
@@ -94,9 +94,9 @@ export default function Dashboard() {
             background: 'rgba(59,130,246,0.12)',
             border: '1px solid rgba(59,130,246,0.3)',
             borderRadius: 20,
-            fontSize: 11,
+            fontSize: 12,
             fontWeight: 600,
-            color: '#60a5fa',
+            color: '#93bbfc',
             textTransform: 'uppercase',
             letterSpacing: '0.08em',
             marginBottom: 12,
@@ -177,9 +177,9 @@ export default function Dashboard() {
                 <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 6 }}>
                   <div style={{
                     width: 24, height: 24, borderRadius: '50%',
-                    background: step.done ? '#10b981' : 'rgba(59,130,246,0.15)',
+                    background: step.done ? '#10b981' : '#2563eb',
                     display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    fontSize: 11, fontWeight: 700, color: step.done ? '#fff' : '#60a5fa',
+                    fontSize: 12, fontWeight: 700, color: '#fff',
                   }}>
                     {step.done ? <CheckCircle2 size={13} /> : step.num}
                   </div>
@@ -255,7 +255,7 @@ export default function Dashboard() {
                     : <AlertCircle size={12} color="#ef4444" />
                   }
                 </div>
-                <div style={{ fontSize: 11, color: settings.b2bWebhookUrl ? '#22c55e' : '#ef4444', marginTop: 2 }}>
+                <div style={{ fontSize: 12, color: settings.b2bWebhookUrl ? '#22c55e' : '#ef4444', marginTop: 2 }}>
                   {settings.b2bWebhookUrl ? 'Connected' : 'Not configured'}
                 </div>
               </div>
@@ -263,7 +263,7 @@ export default function Dashboard() {
             {!settings.b2bWebhookUrl && (
               <button
                 onClick={() => navigate('/agent-setup')}
-                style={{ fontSize: 12, color: '#fff', background: 'rgba(59,130,246,0.2)', border: '1px solid rgba(59,130,246,0.3)', borderRadius: 6, cursor: 'pointer', padding: '5px 14px', fontWeight: 600, whiteSpace: 'nowrap' }}
+                style={{ fontSize: 12, color: '#fff', background: '#2563eb', border: '1px solid #3b82f6', borderRadius: 6, cursor: 'pointer', padding: '6px 14px', fontWeight: 600, whiteSpace: 'nowrap', minHeight: 32 }}
               >
                 Set up
               </button>
@@ -286,7 +286,7 @@ export default function Dashboard() {
                     : <AlertCircle size={12} color="#f59e0b" />
                   }
                 </div>
-                <div style={{ fontSize: 11, color: settings.zapierWebhookUrl ? '#22c55e' : '#f59e0b', marginTop: 2 }}>
+                <div style={{ fontSize: 12, color: settings.zapierWebhookUrl ? '#22c55e' : '#f59e0b', marginTop: 2 }}>
                   {settings.zapierWebhookUrl ? 'Connected' : 'Not configured'}
                 </div>
               </div>
@@ -294,7 +294,7 @@ export default function Dashboard() {
             {!settings.zapierWebhookUrl && (
               <button
                 onClick={() => navigate('/settings')}
-                style={{ fontSize: 12, color: '#fff', background: 'rgba(59,130,246,0.2)', border: '1px solid rgba(59,130,246,0.3)', borderRadius: 6, cursor: 'pointer', padding: '5px 14px', fontWeight: 600, whiteSpace: 'nowrap' }}
+                style={{ fontSize: 12, color: '#fff', background: '#2563eb', border: '1px solid #3b82f6', borderRadius: 6, cursor: 'pointer', padding: '6px 14px', fontWeight: 600, whiteSpace: 'nowrap', minHeight: 32 }}
               >
                 Set up
               </button>
@@ -334,21 +334,21 @@ export default function Dashboard() {
                 >
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
                     <span style={{ fontSize: 13, color: '#e2e8f0', fontWeight: 500 }}>{ct.name}</span>
-                    <span style={{ fontSize: 11, color: '#64748b' }}>{ct.company ?? ct.phone}</span>
+                    <span style={{ fontSize: 12, color: '#64748b' }}>{ct.company ?? ct.phone}</span>
                   </div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                     {ct.leadStatus && (
                       <span style={{
                         fontSize: 10, fontWeight: 700,
                         padding: '2px 7px', borderRadius: 4,
-                        background: `${LEAD_COLORS[ct.leadStatus] ?? '#475569'}1a`,
-                        color: LEAD_COLORS[ct.leadStatus] ?? '#475569',
+                        background: LEAD_COLORS[ct.leadStatus] ?? '#475569',
+                        color: '#fff',
                         textTransform: 'uppercase', letterSpacing: '0.06em',
                       }}>
                         {ct.leadStatus.replace('_', ' ')}
                       </span>
                     )}
-                    <span style={{ fontSize: 11, color: '#475569', minWidth: 58, textAlign: 'right' }}>
+                    <span style={{ fontSize: 12, color: '#64748b', minWidth: 58, textAlign: 'right' }}>
                       {getRelativeTime(ct.calledAt!)}
                     </span>
                   </div>
