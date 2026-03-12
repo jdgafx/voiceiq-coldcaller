@@ -54,6 +54,11 @@ export const handler: Handler = async (event) => {
     Object.entries(contact).filter(([, v]) => v !== '' && v != null)
   );
 
+  // Normalize phone to E.164 (strip spaces, dashes, parens) — Dialora rejects non-E.164
+  if (cleaned.phone) {
+    cleaned.phone = cleaned.phone.replace(/[\s\-().]/g, '');
+  }
+
   try {
     const resp = await fetch(webhookUrl, {
       method: 'POST',
