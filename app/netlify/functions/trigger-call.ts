@@ -49,11 +49,16 @@ export const handler: Handler = async (event) => {
     return { statusCode: 400, headers: corsHeaders, body: 'contact.name and contact.phone are required' };
   }
 
+  // Strip empty/falsy optional fields — Dialora rejects empty strings (e.g. email: "")
+  const cleaned = Object.fromEntries(
+    Object.entries(contact).filter(([, v]) => v !== '' && v != null)
+  );
+
   try {
     const resp = await fetch(webhookUrl, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(contact),
+      body: JSON.stringify(cleaned),
     });
 
     const text = await resp.text();
